@@ -1,0 +1,10 @@
+{
+  "name": "whippet",
+  "version": "1.2.1",
+  "private": true,
+  "description": "Lean-code discipline plugin for Claude Code",
+  "license": "MIT",
+  "scripts": {
+    "test": "node whippet/hooks/selftest.js"
+  }
+}
