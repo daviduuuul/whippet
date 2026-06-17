@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐕 Whippet
+# Whippet
 
 ### Make your AI coding agent write the least code that actually works.
 
