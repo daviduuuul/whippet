@@ -1,12 +1,14 @@
 <div align="center">
 
-<img src="assets/whippet.jpg" alt="A whippet — lean, fast, all muscle" width="480">
+<img src="assets/whippet-logo.png" alt="Whippet" width="220">
 
 # Whippet
 
-### Make your AI coding agent write the least code that actually works.
+**Make your AI coding agent write the least code that actually works.**
 
-Lazy as in better judgment, not less effort.
+<sub>Lazy as in better judgment, not less effort.</sub>
+
+<br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
 [![Version](https://img.shields.io/badge/version-1.0.0-4c8bf5?style=flat-square)](#)
@@ -93,10 +95,12 @@ Two commands come with it:
 
 ## Turn it up, down, or off
 
-- `/whippet ultra` goes as lean as it gets: delete first, push back on the rest of the request.
-- `/whippet full` is the default.
-- `/whippet lite` builds what you asked and just names the leaner option.
-- `stop whippet` steps aside for the rest of the session.
+| Say this | And it does this |
+|:---|:---|
+| <kbd>/whippet ultra</kbd> | goes as lean as it gets: delete first, push back on the rest of the request |
+| <kbd>/whippet full</kbd> | the default |
+| <kbd>/whippet lite</kbd> | builds what you asked and just names the leaner option |
+| <kbd>stop whippet</kbd> | steps aside for the rest of the session |
 
 ## Credits
 
@@ -110,9 +114,3 @@ of screenshots.
 ## License
 
 [MIT](LICENSE). Use it however you want, just keep the notice.
-
----
-
-<div align="center">
-<sub>Header photo by <a href="https://www.pexels.com/photo/close-up-of-a-whippet-dog-17781233/">wr heustis</a> on Pexels.</sub>
-</div>
