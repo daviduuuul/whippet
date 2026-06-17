@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/whippet.jpg" alt="A whippet — lean, fast, all muscle" width="480">
+
 # Whippet
 
 ### Make your AI coding agent write the least code that actually works.
@@ -108,3 +110,9 @@ of screenshots.
 ## License
 
 [MIT](LICENSE). Use it however you want, just keep the notice.
+
+---
+
+<div align="center">
+<sub>Header photo by <a href="https://www.pexels.com/photo/close-up-of-a-whippet-dog-17781233/">wr heustis</a> on Pexels.</sub>
+</div>
