@@ -2,9 +2,9 @@
 
 # 🐕 Whippet
 
-### Make your AI coding agent write the *least code that actually works.*
+### Make your AI coding agent write the least code that actually works.
 
-**Lazy as in better _judgment_, not less effort.**
+Lazy as in better judgment, not less effort.
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
 [![Version](https://img.shields.io/badge/version-1.0.0-4c8bf5?style=flat-square)](#)
@@ -14,11 +14,10 @@
 
 ---
 
-Your coding agent is brilliant and a little too eager. Ask it for a date picker
-and it installs a library, wraps it in a provider, and writes a custom hook.
-Whippet gives it the one instinct it's missing: that of a senior developer who
-has been paged at 3am for someone else's cleverness and now writes the smallest
-thing that survives.
+Your coding agent is sharp, and a little too eager. Ask it for a date picker and
+it reaches for a library, wraps it in a provider, and hands you a custom hook.
+Whippet gives it the instinct it's missing: the senior who got paged at 3am for
+someone else's cleverness and now writes the smallest thing that survives.
 
 ```diff
   You: "Add a date picker."
@@ -27,83 +26,85 @@ thing that survives.
 + With whippet:    <input type="date">
 ```
 
-It's a discipline, not a diet. Correctness, security, validation, and
-accessibility are never on the chopping block — whippet builds **fully** when the
-problem genuinely needs it, and refuses to "simplify" away the things that bite
-you at 3am.
+This is a discipline, not a diet. It never trades away correctness, security,
+validation, or accessibility to look minimal, and it builds the full thing when
+the problem actually needs one. The target is the smallest code that survives the
+edge cases, which is not the same as the smallest code.
 
-## How it thinks — the ladder
+## How it thinks
 
-Before writing a single line, it stops at the first rung that holds:
+Before writing a line, it stops at the first rung that holds:
 
-1. **Does this need to exist at all?** &nbsp;→&nbsp; skip it _(YAGNI)_
-2. **Does our own codebase already do it?** &nbsp;→&nbsp; reuse it
-3. **Does the standard library do it?** &nbsp;→&nbsp; use it
-4. **Does a native platform feature cover it?** &nbsp;→&nbsp; `<input type="date">`, CSS, a DB constraint
-5. **Does an installed dependency solve it?** &nbsp;→&nbsp; use it — never add a *second* library for a job you already have
-6. **Can it be one line?** &nbsp;→&nbsp; one line
-7. **Only then** &nbsp;→&nbsp; the minimum code that works
+1. Does this need to exist at all? If not, skip it and say so.
+2. Does the codebase already do it? Reuse that.
+3. Does the standard library do it? Use it.
+4. Does a native platform feature cover it? `<input type="date">`, CSS, a database constraint.
+5. Does an installed dependency solve it? Use it, and don't add a second library for a job you already have one for.
+6. Can it be one line? Then it's one line.
+7. Only then write the minimum code that works.
 
-## Why not just "write less code"?
+## Where "less code" goes wrong
 
-Because that's how you get a flimsy mess. Whippet is tuned from real A/B testing,
-not headline percentages, and it knows exactly where lean is the **wrong** answer:
+Lean done carelessly is just fragile, so whippet knows the spots where small is
+the wrong call.
 
-- 🔒 **Security primitives** use vetted libraries (bcrypt, argon2) — never
-  hand-rolled to dodge a dependency.
-- 🧪 **Non-trivial logic ships with one runnable check** — not a test it ran once
-  and quietly deleted.
-- 🧹 **It cleans up after itself** — no scratch files, no commented-out code, no
-  half-applied edits left in your tree.
-- ✂️ It cuts **complexity**, never **correctness**.
+Password hashing, encryption, anything security-shaped reaches for a vetted
+library like bcrypt or argon2. It will not hand-roll crypto to save a dependency.
 
-## What's in the box
+Anything with real logic ships with one small check you can actually run, not a
+test it ran once and threw away.
 
-| Component | What it does |
-|---|---|
-| **`whippet` skill** | The always-on discipline: the ladder, dependency hygiene, the security carve-out, the "leave a check" rule, clean-workspace habits, and a terse reporting style. Levels: `lite` · `full` · `ultra`. |
-| **`/whippet-review`** | Scans your diff for removable code, needless dependencies, and shortcuts with no upgrade path. Run it before a commit. |
-| **`/whippet-ledger`** | Lists every `whippet:` shortcut in the repo with its upgrade condition — your deferred decisions, never forgotten in a comment. |
+And it cleans up after itself. No scratch files, no commented-out blocks, nothing
+half-finished left in your tree.
+
+It cuts complexity, never correctness. The claims here come from real A/B runs,
+not a percentage off a slide.
+
+## What you get
+
+The `whippet` skill is that discipline, always on: the ladder, dependency
+hygiene, the security exceptions, the leave-a-check habit, a tidy workspace, and
+short plain reporting. Three levels: `lite`, `full` (the default), `ultra`.
+
+Two commands come with it:
+
+- `/whippet-review` reads your diff and points out code you can delete,
+  dependencies you don't need, and shortcuts with no exit plan. Run it before you
+  commit.
+- `/whippet-ledger` collects every `whippet:` marker in the repo into one list,
+  each with the condition that should trigger its upgrade. Your "fix it later"
+  notes in one place instead of buried in comments.
 
 ## Install
 
-```text
+```
 /plugin marketplace add daviduuuul/whippet
 /plugin install whippet@whippet
 ```
 
 ## Update
 
-When a new version ships, pull it:
-
-```text
+```
 /plugin marketplace update whippet
 /plugin update whippet@whippet
 ```
 
-## Control
+## Turn it up, down, or off
 
-| Say this | And it… |
-|---|---|
-| `/whippet ultra` | goes maximally lean — deletion before addition |
-| `/whippet full` | the default — the full ladder, enforced |
-| `/whippet lite` | builds what you asked, names the leaner option |
-| `stop whippet` | steps aside for the session |
+- `/whippet ultra` goes as lean as it gets: delete first, push back on the rest of the request.
+- `/whippet full` is the default.
+- `/whippet lite` builds what you asked and just names the leaner option.
+- `stop whippet` steps aside for the rest of the session.
 
 ## Credits
 
-Whippet is original work, but it stands on two good ideas: the lazy-senior YAGNI
-ladder of **[Ponytail](https://github.com/DietrichGebert/ponytail)** and the
-terse-output instinct of **[Caveman](https://github.com/JuliusBrussee/caveman)**.
-It folds both into a single discipline, scopes them so they never trade away
-correctness, and earns its claims from A/B tests instead of LinkedIn screenshots.
+Original work, but it owes two earlier projects:
+[Ponytail](https://github.com/DietrichGebert/ponytail) for the lazy-senior YAGNI
+ladder, and [Caveman](https://github.com/JuliusBrussee/caveman) for short agent
+replies. Whippet puts both in one place, draws the lines where they would
+otherwise cost you correctness, and backs what it claims with A/B tests instead
+of screenshots.
 
 ## License
 
-[MIT](LICENSE) — do what you like, just keep the notice.
-
----
-
-<div align="center">
-<sub>The best code is the code you never wrote.<br>The second best is the smallest correct thing that survives the edge cases.</sub>
-</div>
+[MIT](LICENSE). Use it however you want, just keep the notice.
