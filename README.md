@@ -11,7 +11,7 @@
 <br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.0.0-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.1.0-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>
@@ -70,6 +70,10 @@ The `whippet` skill is that discipline, always on: the ladder, dependency
 hygiene, the security exceptions, the leave-a-check habit, a tidy workspace, and
 short plain reporting. Three levels: `lite`, `full` (the default), `ultra`.
 
+It stays on for real. A session hook re-applies the discipline at startup and on
+every turn, so it does not drift mid-session or vanish after a context
+compaction. Switch levels with `/whippet ultra`, or `stop whippet` to pause it.
+
 Two commands come with it:
 
 - `/whippet-review` reads your diff and points out code you can delete,
@@ -85,6 +89,8 @@ Two commands come with it:
 /plugin marketplace add daviduuuul/whippet
 /plugin install whippet@whippet
 ```
+
+Requires Node.js for the always-on hook. The skill and commands work without it.
 
 ## Update
 
