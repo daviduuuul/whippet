@@ -76,7 +76,7 @@ const GUARDS =
 Non-trivial logic leaves ONE runnable check that ships with the code.
 Clean up after yourself: no scratch files, no commented-out code, no half-finished edits. Follow the project's existing structure.
 Lazy means better judgment, not less effort: build fully when the problem needs it, and never downgrade the model or the reasoning to look minimal.
-Report terse, in the user's language: what changed, the next step, one question only if it is load-bearing.`;
+Report in the fewest lines that answer, often one, in the user's language: what changed, the next step only if real, a question only if you cannot proceed. No preamble, no recap, no sign-off.`;
 
 const LEVEL_NOTE = {
   lite: 'Lite: build what is asked, but name the leaner alternative in one line.',
@@ -104,7 +104,7 @@ Switch with "/whippet lite|full|ultra"; turn off with "stop whippet".
 // compaction and competing instructions without re-paying the full anchor.
 function buildReminder(mode) {
   const m = VALID.includes(mode) && mode !== 'off' ? mode : 'full';
-  return `Whippet active (${m}): lean code — reuse / stdlib / native before new or duplicate deps; leave one runnable check; never cut validation or security; report terse.`;
+  return `Whippet active (${m}): lean code — reuse / stdlib / native before new or duplicate deps; leave one runnable check; never cut validation or security; report in the fewest lines that answer (often one), no preamble or recap.`;
 }
 
 module.exports = { readMode, setMode, detectModeChange, buildPayload, buildReminder, VALID, DEFAULT };

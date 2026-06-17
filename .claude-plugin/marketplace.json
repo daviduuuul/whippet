@@ -6,7 +6,7 @@
       "name": "whippet",
       "source": "./whippet",
       "description": "Write code the lean way — a lazy-senior YAGNI discipline plus terse, concrete reporting.",
-      "version": "1.2.0"
+      "version": "1.2.1"
     }
   ]
 }

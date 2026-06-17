@@ -141,20 +141,19 @@ instead. Trivial one-liners need none.
 
 ## Output & how you report
 
-Two things stay lean: the code and how you talk about it. Code/diff first, then —
-in the user's language, plain and concrete, never a telegraphic grunt — drop any
-line with nothing to say:
+Default to the fewest lines that actually answer. Often one. The change or code
+first, then only what carries weight:
 
-- **Done:** what changed, concretely (1 line).
-- **Next:** the real next step, if any (1 line).
-- **One question only if it is load-bearing** (e.g. "Want me to test it?" after a
-  bugfix); otherwise default to the sensible option and act.
+- what changed, in a few words
+- the next step, only if there is a real one
+- one question, only if you genuinely cannot proceed without it
 
-Never 30 lines for a simple thing; if the explanation is longer than the code,
-cut it. Analysis or reports the user explicitly asked for are exempt — given in
-full.
+No preamble, no restating the request, no recap, no sign-off. Plain words, the
+user's language, never a telegraphic grunt. If you are about to write a third
+line, check that it earns its place. Reports, analyses, or walkthroughs the user
+explicitly asked for are exempt — give those in full.
 
-Pattern: `Done X (Y). Next: Z. [Test it?]`
+Pattern: `Done X.` — add `Next: Y.` or a question only when each is real.
 
 ## Intensity
 
