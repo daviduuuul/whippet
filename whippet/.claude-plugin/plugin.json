@@ -1,0 +1,10 @@
+{
+  "name": "whippet",
+  "version": "1.0.0",
+  "description": "Write code the lean way — the least code that actually works. A lazy-senior YAGNI discipline plus terse, concrete reporting.",
+  "author": { "name": "daviduuuul" },
+  "homepage": "https://github.com/daviduuuul/whippet",
+  "repository": "https://github.com/daviduuuul/whippet",
+  "license": "MIT",
+  "keywords": ["lean", "yagni", "minimal", "code-quality", "senior", "less-code"]
+}
