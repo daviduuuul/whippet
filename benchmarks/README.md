@@ -5,10 +5,18 @@ Independent re-tests keep finding those numbers measure the wrong thing
 ([Ponytail #121](https://github.com/DietrichGebert/ponytail/issues/121),
 [npow](http://npow.github.io/posts/does-caveman-mode-actually-work/),
 [implicator.ai](https://www.implicator.ai/caveman-claude-code-skill-cuts-output-20-your-bill-barely-notices-2/)).
-So whippet does the opposite: a small, honest A/B screen that reports where it
-helps **and where it doesn't**.
+So whippet does the opposite: it reports where it helps **and where it doesn't**.
 
-## Method
+Two tiers:
+
+- **Tier 0 — directional screen (below):** a quick hand-scored A/B. Cheap, honest
+  about being weak (single run, self-reported). Good for a gut check, not proof.
+- **Tier 2 — the real harness:** three paired arms, real fixture repos with hidden
+  graders, automated objective metrics, and confidence intervals. The protocol is
+  in [METHODOLOGY.md](METHODOLOGY.md); fixtures live in [`fixtures/`](fixtures/),
+  scored by `scripts/bench-score.js` and aggregated by `npm run bench`.
+
+## Tier 0 method
 
 For each task, the same prompt is sent to two agents: one following whippet, one
 not (`stop whippet`). We don't grade lines saved. We grade what actually matters:
@@ -56,12 +64,24 @@ leaves the check in the code. That, not code size, is the repeatable difference.
 This is a directional screen, not a statistical proof. We would rather ship a
 small honest screen than a big dishonest headline.
 
-## Reproduce it yourself
+## Run Tier 2 (the real harness)
 
-Install whippet, then for any task above:
+Per fixture, run all three arms (`off`, `baseline`, `whippet` — see
+[METHODOLOGY.md](METHODOLOGY.md)) in a fresh copy of the fixture's `before/`,
+then score each result against the fixture:
 
-1. New session, run the task normally (whippet is on). Save the result.
-2. New session, type `stop whippet`, run the same task. Save the result.
-3. Compare on the five questions under **Method**.
+```
+node scripts/bench-score.js <fixture-id> <arm> <candidate-dir> --model <model> --save
+npm run bench   # aggregate every results/*.json{,l} into one scoreboard
+```
 
-No API keys, no harness. The agent is the harness.
+The scorer runs the hidden grader (correctness gate), then measures LOC/files/
+dependencies added and whether the existing helper was reused — appending one row
+to `results/runs.jsonl`. `bench-score.js` against a fixture's `reference/` is the
+harness's own runnable check (it should score `correct: true`).
+
+Where to push for **big** results: add fixtures (especially traps) and run the
+smaller/older models too. A frontier 2026 model is already lean, so the
+size/dependency axis barely moves — the gap is predicted to widen on weaker
+models, and the harness is built to surface exactly that, with CIs that stay
+honest about small samples.

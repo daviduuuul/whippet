@@ -1,0 +1,13 @@
+{
+  "model": "Claude Opus 4.8",
+  "date": "2026-06-18",
+  "note": "Seeded from benchmarks/README.md. Single run per cell, self-reported manifests. Only the differentiators the write-up actually measured are recorded; no per-task data was invented. Across all 13 tasks neither arm added an unneeded dependency except where noted (express-auth baseline).",
+  "observations": [
+    { "task": "express-auth", "arm": "whippet",  "ranCheck": true,  "validationOk": true,  "depAdded": false },
+    { "task": "express-auth", "arm": "baseline", "ranCheck": false, "validationOk": false, "depAdded": true  },
+    { "task": "react-orders", "arm": "whippet",  "ranCheck": true },
+    { "task": "react-orders", "arm": "baseline", "ranCheck": false },
+    { "task": "json-merge",   "arm": "whippet",  "ranCheck": true },
+    { "task": "json-merge",   "arm": "baseline", "ranCheck": false }
+  ]
+}

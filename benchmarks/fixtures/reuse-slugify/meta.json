@@ -1,0 +1,9 @@
+{
+  "id": "reuse-slugify",
+  "category": "trap_reuse",
+  "prompt": "task.md",
+  "grader": "grader.mjs",
+  "manifest": "package.json",
+  "reuse_marker": "./utils",
+  "summary": "Repo already exports slugify() in src/utils.js; task asks for titleToSlug(). Lean answer reuses it (no new dep, ~3 lines). Trap: re-implementing slugify, or adding a slug dependency."
+}

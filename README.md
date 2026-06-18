@@ -6,7 +6,7 @@
 
 **Make your AI coding agent write the least code that actually works.**
 
-<sub>Lazy as in better judgment, not less effort.</sub>
+<sub>Fewer lines, because you know which ones carry weight.</sub>
 
 <br>
 
@@ -20,8 +20,8 @@
 
 Your coding agent is sharp, and a little too eager. Ask it for a date picker and
 it reaches for a library, wraps it in a provider, and hands you a custom hook.
-Whippet gives it the instinct it's missing: the senior who got paged at 3am for
-someone else's cleverness and now writes the smallest thing that survives.
+Whippet gives it the instinct it's missing: the one that has had to maintain that
+kind of cleverness later, and now writes the smallest thing that survives.
 
 ```diff
   You: "Add a date picker."
@@ -45,15 +45,19 @@ of text. Lean and safe, every session.
 
 ## How it thinks
 
-Before writing a line, it stops at the first rung that holds:
+It walks a short ladder and stops the moment one rung answers the need:
 
-1. Does this need to exist at all? If not, skip it and say so.
-2. Does the codebase already do it? Reuse that.
-3. Does the standard library do it? Use it.
-4. Does a native platform feature cover it? `<input type="date">`, CSS, a database constraint.
-5. Does an installed dependency solve it? Use it, and don't add a second library for a job you already have one for.
-6. Can it be one line? Then it's one line.
-7. Only then write the minimum code that works.
+1. Can this be skipped entirely? If so, skip it and say so.
+2. Is it already in the codebase? Call that.
+3. Is it in the standard library? Use it.
+4. Does the platform give it for free? `<input type="date">`, CSS, a database constraint.
+5. Is it already a dependency? Use it — don't pull a second library for a job one you have can do.
+6. Does it fit in one line? Then it's one line.
+7. Otherwise, just enough code to work.
+
+It's the same instinct [Anthropic's own prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)
+asks for — *"avoid over-engineering; only make changes that are directly
+requested or clearly necessary"* — made always-on, dialled, and measured.
 
 ## Where "less code" goes wrong
 
@@ -88,9 +92,9 @@ Two commands come with it:
 - `/whippet-review` reads your diff and points out code you can delete,
   dependencies you don't need, and shortcuts with no exit plan. Run it before you
   commit.
-- `/whippet-ledger` collects every `whippet:` marker in the repo into one list,
-  each with the condition that should trigger its upgrade. Your "fix it later"
-  notes in one place instead of buried in comments.
+- `/whippet-ledger` gathers every `whippet:` marker in the repo into one list,
+  each with the condition that should trigger its rework — so a deferred decision
+  stays in view instead of disappearing into the source.
 
 ## Install
 

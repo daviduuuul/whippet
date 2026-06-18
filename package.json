@@ -5,6 +5,8 @@
   "description": "Lean-code discipline plugin for Claude Code",
   "license": "MIT",
   "scripts": {
-    "test": "node whippet/hooks/selftest.js"
+    "test": "node whippet/hooks/selftest.js && node scripts/check-manifests.js",
+    "bump": "node scripts/bump.js",
+    "bench": "node scripts/bench-report.js"
   }
 }
