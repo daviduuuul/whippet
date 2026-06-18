@@ -25,6 +25,10 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   hidden graders under `benchmarks/fixtures/`, an objective scorer
   (`scripts/bench-score.js`: correctness gate + LOC/deps/reuse), and an aggregator
   (`npm run bench`) with Wilson confidence intervals and per-category splits.
+- Three trap fixtures (`reuse-slugify`, `stdlib-uuid`, `yagni-config`) and an
+  LLM-judge (`scripts/judge.js`) for the qualitative metrics — rubric-based,
+  reference-guided, position-bias-controlled (judge swapped, a win counts only
+  both ways), model-agnostic. Its resolver ships a runnable check in `npm test`.
 - Repo dev hook: edits to the hooks, scripts, or a manifest auto-run the suite
   and report a failure back (whippet dogfooding its own "always-on check").
 

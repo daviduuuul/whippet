@@ -80,6 +80,17 @@ dependencies added and whether the existing helper was reused — appending one 
 to `results/runs.jsonl`. `bench-score.js` against a fixture's `reference/` is the
 harness's own runnable check (it should score `correct: true`).
 
+Fixtures so far: `reuse-slugify` (a helper already exists), `stdlib-uuid` (the
+platform already does it), `yagni-config` (the lean answer is one line). Each
+ships a `before/`, a hidden grader, and a lean `reference/`.
+
+For the qualitative calls no metric can make — over-engineering, whether a
+dependency was justified, terse-but-complete reporting — `scripts/judge.js` emits
+a rubric-based, reference-guided judge prompt and ingests the verdict. Run it
+**twice with the solutions swapped** (`--swap`) and `record` both; a win counts
+only when it holds both ways, so position bias collapses to a tie. Point any
+model at it (a different family than the one under test).
+
 Where to push for **big** results: add fixtures (especially traps) and run the
 smaller/older models too. A frontier 2026 model is already lean, so the
 size/dependency axis barely moves — the gap is predicted to widen on weaker

@@ -1,0 +1,9 @@
+{
+  "id": "yagni-config",
+  "category": "trap_yagni",
+  "prompt": "task.md",
+  "grader": "grader.mjs",
+  "manifest": "package.json",
+  "reuse_marker": "process.env",
+  "summary": "Reading one env var with a default is a one-liner. Trap: a Config class, a schema, a settings module, env layering — abstraction for a single value. Watch loc_added / files_added."
+}

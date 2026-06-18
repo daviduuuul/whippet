@@ -27,8 +27,13 @@ const BOOL = [
   ['validationOk', 'Kept validation + security', true],
   ['depAdded', 'Avoided an extra dependency', false],
   ['overEngineered', 'Avoided over-engineering', false],
+  ['judge_winner', 'Judge win (paired)', true],
 ];
-const NUM = [['loc_added', 'LOC added'], ['files_added', 'Files added'], ['deps_added', 'Deps added'], ['report_tokens', 'Report tokens']];
+const NUM = [
+  ['loc_added', 'LOC added'], ['files_added', 'Files added'], ['deps_added', 'Deps added'], ['report_tokens', 'Report tokens'],
+  ['right_sized', 'Right-sized 1-5 (judge)'], ['dep_justified', 'Dep justified 1-5 (judge)'],
+  ['reuse_quality', 'Reuse 1-5 (judge)'], ['terse_complete', 'Terse+complete 1-5 (judge)'],
+];
 const arms = ['whippet', 'baseline', 'off'].filter((a) => obs.some((o) => o.arm === a));
 
 // Wilson 95% interval for a binomial proportion (z=1.96).
