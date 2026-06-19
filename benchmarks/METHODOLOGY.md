@@ -69,6 +69,9 @@ partly over contamination + flawed graders). Treat any public task as burned.
 
 - **Correctness** — the hidden grader passes. This is a **hard gate**: lean-ness
   only counts if the code is correct, so it can't be gamed by deleting needed code.
+  Graders load the candidate whether it used ESM (`export`) or CommonJS
+  (`module.exports`) — the module convention the task never specifies, so it isn't
+  a scoring confound (`fixtures/_load.mjs`).
 - **LOC added**, files added (proxy for size — never a target on its own; LOC is
   gameable, [Goodhart](https://getdx.com/blog/lines-of-code/)).
 - **Dependencies added** — manifest diff. Fully objective.
