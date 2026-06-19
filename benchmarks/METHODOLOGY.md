@@ -77,7 +77,12 @@ partly over contamination + flawed graders). Treat any public task as burned.
 - **LOC added**, files added (proxy for size — never a target on its own; LOC is
   gameable, [Goodhart](https://getdx.com/blog/lines-of-code/)).
 - **Dependencies added** — manifest diff. Fully objective.
-- **Reuse** — did the candidate use the existing helper the fixture flags?
+- **Reuse** — did the candidate call the existing helper the fixture flags?
+  Recorded **only for `trap_reuse`**, where reuse is the rung under test (call
+  existing code). It is *not* set for `trap_stdlib` (taking the stdlib is a
+  different rung — read it off `deps_added`) or `trap_yagni` (not building is a
+  different rung — read it off `loc_added`); pooling all three under one boolean
+  mislabels the rung and inflates the denominator.
 
 **Qualitative (over-engineering, reuse quality, terse-but-complete) — not run.**
 A bias-controlled LLM-judge (`scripts/judge.js`, position-bias guarded,

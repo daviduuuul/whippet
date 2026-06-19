@@ -5,6 +5,17 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 ## [Unreleased]
 
 ### Changed
+- **Fixed the `reused` metric mislabel — whippet's last apparent edge was an
+  artifact** (third review). The boolean had been recorded across three categories
+  whose right answer is three *different* rungs (reuse existing code, take the
+  stdlib, don't build it), so the /15 denominator pooled rungs that aren't reuse,
+  and the whole reported "whippet 15/15 vs baseline 13/15" win was 2 runs in
+  `trap_stdlib`. Removed the `reuse_marker` from `stdlib-uuid` and `yagni-config`
+  (their real signal is already `deps_added` / `loc_added`), stripped the
+  mislabelled `reused` field from those observations in `runs.jsonl` at the source
+  (not just hidden in presentation), and scoped the scoreboard label to
+  `trap_reuse`. Scored honestly, reuse is now 5/5 every arm — a tie. No metric
+  separates whippet from the one-line baseline.
 - **Deflated the benchmark apparatus to what actually ran** (second review).
   Deleted the McNemar/Wilcoxon claim from `METHODOLOGY.md` — never implemented,
   and degenerate on a 25/25 ceiling (zero discordant pairs). Cut the unrun
