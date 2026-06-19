@@ -1,12 +1,11 @@
 // Hidden grader for stdlib-uuid. Run: CANDIDATE=<dir> node grader.mjs — exit 0 = pass.
-import { pathToFileURL } from 'node:url';
-import path from 'node:path';
 import assert from 'node:assert/strict';
+import { loadCandidate } from '../_load.mjs';
 
 const dir = process.env.CANDIDATE;
 if (!dir) { console.error('set CANDIDATE=<candidate dir>'); process.exit(2); }
 
-const { newId } = await import(pathToFileURL(path.resolve(dir, 'src/id.js')).href);
+const { newId } = await loadCandidate(dir, 'src/id.js');
 
 const a = newId();
 assert.equal(typeof a, 'string', 'newId() returns a string');
