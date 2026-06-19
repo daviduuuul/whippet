@@ -11,7 +11,7 @@
 <br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.2.1-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.3.0-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>
@@ -42,6 +42,11 @@ discipline the model skips on its own: leave a runnable check, refuse a duplicat
 dependency, reach for a vetted crypto library instead of hand-rolling, clean up
 its own scratch files, and report back in short plain language instead of a wall
 of text. Lean and safe, every session.
+
+The point was never fewer characters — it's smaller, more reviewable diffs, the
+lever [Google's 2025 DORA report](https://dora.dev/dora-report-2025/) ties to
+*lower software-delivery instability* (large batches are exactly where AI's
+subtly-wrong code slips past review).
 
 ## How it thinks
 

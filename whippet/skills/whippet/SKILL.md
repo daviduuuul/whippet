@@ -100,6 +100,9 @@ contracts *first*: that is the opposite of guessing.
   product, no config for a constant).
 - No boilerplate or scaffolding "for later". Deletion over addition. Fewest
   files; shortest working diff.
+- **Small, revertible batches.** One logical change at a time, each easy to review
+  and roll back. A large diff is where a subtly-wrong edit slips past review — keep
+  unrelated changes in separate commits.
 - Two options same size → the one correct on edge cases. Lean is less code, not
   the flimsier algorithm.
 - Judge leanness on the **artifact** (diff, deps, files), not on unverifiable

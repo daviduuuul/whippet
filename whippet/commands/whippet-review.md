@@ -17,6 +17,9 @@ given, else the working diff.
    - **Premature abstraction:** interface/factory/config with a single use.
    - **`whippet:` without a ceiling:** a shortcut comment naming no upgrade path.
    - **Missing check:** non-trivial logic with no runnable check left behind.
+   - **Oversized batch:** a hunk mixing unrelated changes, or a diff too large to
+     review in one pass — flag the split (one logical, revertible change per
+     commit). Big batches are where AI-written bugs slip past review.
    - **Over-cut (the other failure):** error handling, validation, security, or
      disposal removed to shrink the diff — flag as a regression, not a win.
 3. Do **not** rewrite anything. Output a short list, most-impactful first:
