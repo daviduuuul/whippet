@@ -5,6 +5,18 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 ## [Unreleased]
 
 ### Changed
+- **Applied whippet to whippet, after an adversarial review.** Cut the per-turn
+  reminder: the discipline now re-anchors at `SessionStart` (which fires on
+  `compact`) and on an explicit mode change, not on every turn — removing an
+  ~80-token-per-turn tax that whippet's own rung 1 says to cut. Aligned the
+  SKILL's ultra-mode claim to the code (mode flips on `/whippet <level>` or
+  `whippet <level>`, not on bare prose like "ultra mode"; selftest locks it).
+  Trimmed the SKILL's opening flourish. README: dropped the misattributed "5×"
+  hero number — it's the one-line baseline's result too, so crediting whippet
+  with it was self-report by attribution. The honest pitch is now packaging
+  (install-once portability, mode control, the commands), not a measured artifact
+  or drift edge; the [A/B note](benchmarks/results/2026-06-19-opus-ab.md) carries
+  the full verdict and the drift-test protocol.
 - Reworded the skill, the injected hook text, and the README so the ladder, the
   guards, the "runnable check" rule, and the level table are whippet's own words,
   not Ponytail's — credit stays, borrowed phrasing doesn't.

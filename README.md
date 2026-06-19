@@ -54,20 +54,24 @@ Lean done carelessly is just fragile, so Whippet knows the lines it doesn't cros
 
 Ask for the full version and that *is* the spec. It builds the full thing.
 
-## The number
+## What the benchmark actually says
 
-No slide, no screenshot. We A/B test it ([methodology](benchmarks/METHODOLOGY.md)).
+No slide, no screenshot — an A/B harness ([methodology](benchmarks/METHODOLOGY.md)),
+nulls published.
 
-Left un-nudged, even a strong 2026 model ships diffs about **5× larger** than a
-disciplined one, at identical correctness. Whippet keeps the discipline on
-automatically, every turn. And it publishes the runs where it only *ties* a
-one-line reminder, not just the ones it wins: a tool that hides its losses has
-earned less trust on its wins.
+The honest read of the first run: a disciplined agent ships diffs ~5× smaller than
+an un-nudged one at identical correctness — but a one-line *"write less code"*
+nudge gets the **same** result. On the artifact, whippet **ties** the one-liner; it
+doesn't beat it. So whippet isn't selling you a magic number.
 
-Smaller diffs are also the lever Google's 2025
-[DORA report](https://dora.dev/dora-report-2025/) ties to lower delivery
-instability — big batches are exactly where an agent's subtly-wrong line slips
-past review.
+What it sells is that discipline made portable: installed once and applied in every
+repo, dialled (`lite` / `full` / `ultra`), with the review, simplify, and ledger
+commands — instead of a paragraph you paste into each project's `CLAUDE.md` by hand.
+The content is curated and the guards are tested; the packaging is the product.
+
+What it will never do is claim a win it didn't measure. (Smaller diffs are the
+lever Google's 2025 [DORA report](https://dora.dev/dora-report-2025/) ties to lower
+delivery instability.)
 
 ## How it decides
 
@@ -85,7 +89,7 @@ A short ladder. It stops at the first rung that answers the need:
 
 | | |
 |---|---|
-| **Always on** | A session hook re-applies the discipline at startup and on every turn. It doesn't drift mid-session or vanish after a context compaction. |
+| **Always on** | A session hook re-anchors the discipline at startup and after a context compaction (when the conversation gets summarized), so it doesn't quietly vanish. No per-turn token tax. |
 | **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`. `stop whippet` pauses it for the session. |
 | **`/whippet-review`** | Reads your diff and flags code to delete, dependencies you don't need, and shortcuts with no exit plan. Run it before you commit. |
 | **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. Language-agnostic, leaves a passing check behind, flags anything risky instead of touching it. |
