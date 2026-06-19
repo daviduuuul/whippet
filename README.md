@@ -13,7 +13,6 @@
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
 [![Version](https://img.shields.io/badge/version-1.3.0-4c8bf5?style=flat-square)](#)
-[![Benchmarked](https://img.shields.io/badge/benchmarked-A%2FB-8957e5?style=flat-square)](benchmarks/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>

@@ -5,6 +5,15 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 ## [Unreleased]
 
 ### Changed
+- **Deflated the benchmark apparatus to what actually ran** (second review).
+  Deleted the McNemar/Wilcoxon claim from `METHODOLOGY.md` — never implemented,
+  and degenerate on a 25/25 ceiling (zero discordant pairs). Cut the unrun
+  LLM-judge rubric to a one-line "not run, no claim". Removed every unpopulated
+  column from `bench-report.js` (no scoreboard skeleton for a study not done).
+  Dropped the "Benchmarked A/B" badge — the A/B showed a tie, not a validation.
+  Cut `SKILL.md` 207→118 lines: the ladder isn't re-specified three times. The
+  lesson, now a methodology guardrail: a false claim in one file isn't sanctioned
+  by a confession in another — delete it.
 - **Applied whippet to whippet, after an adversarial review.** Cut the per-turn
   reminder: the discipline now re-anchors at `SessionStart` (which fires on
   `compact`) and on an explicit mode change, not on every turn — removing an

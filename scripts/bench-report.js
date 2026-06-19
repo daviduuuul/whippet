@@ -45,20 +45,15 @@ if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir)) {
 }
 if (!obs.length) { console.log('No observations yet. Add a file under benchmarks/results/ or run scripts/bench-score.js --save.'); process.exit(0); }
 
-// good=true  → higher is better; good=false → we report the "clean" rate (value===false).
+// Only metrics the harness actually produces. No columns for an unrun study:
+// add a row here when (and only when) real data populates it.
+// good=true → higher is better; good=false → report the "clean" rate (value===false).
 const BOOL = [
   ['correct', 'Correct (gate)', true],
   ['reused', 'Reused existing / native', true],
-  ['ranCheck', 'Left a runnable check', true],
-  ['validationOk', 'Kept validation + security', true],
-  ['depAdded', 'Avoided an extra dependency', false],
-  ['overEngineered', 'Avoided over-engineering', false],
-  ['judge_winner', 'Judge win (paired)', true],
 ];
 const NUM = [
-  ['loc_added', 'LOC added'], ['files_added', 'Files added'], ['deps_added', 'Deps added'], ['report_tokens', 'Report tokens'],
-  ['right_sized', 'Right-sized 1-5 (judge)'], ['dep_justified', 'Dep justified 1-5 (judge)'],
-  ['reuse_quality', 'Reuse 1-5 (judge)'], ['terse_complete', 'Terse+complete 1-5 (judge)'],
+  ['loc_added', 'LOC added'], ['files_added', 'Files added'], ['deps_added', 'Deps added'],
 ];
 const arms = ['whippet', 'baseline', 'off'].filter((a) => obs.some((o) => o.arm === a));
 

@@ -1,7 +1,9 @@
 # Benchmark methodology
 
-How whippet measures itself so the numbers mean something. The short version of a
-longer literature review; sources are linked inline.
+How whippet measures itself. **One real screen has run**
+([verdict](results/2026-06-19-opus-ab.md)) and it found whippet **ties** a
+one-line baseline on the artifact. What follows is the protocol and the limits,
+not a finished study — read the verdict first for what the data actually supports.
 
 ## The one rule everything else serves
 
@@ -77,30 +79,25 @@ partly over contamination + flawed graders). Treat any public task as burned.
 - **Dependencies added** — manifest diff. Fully objective.
 - **Reuse** — did the candidate use the existing helper the fixture flags?
 
-**LLM-judge with a rubric** (manual or scripted, cross-provider judge):
+**Qualitative (over-engineering, reuse quality, terse-but-complete) — not run.**
+A bias-controlled LLM-judge (`scripts/judge.js`, position-bias guarded,
+cross-family) is written for it, but it has produced **zero** observations. Until
+it runs, whippet makes **no** qualitative claim and the scoreboard shows no
+qualitative column. The harness scores only the objective metrics above.
 
-- over-engineering, dependency justified, reuse quality, terse-but-complete report.
-- Control the biases that would invert our result: **verbosity bias** (a
-  length-biased judge penalizes the lean answer — score a per-criterion rubric,
-  add an explicit conciseness criterion), **position bias** (run each pairwise
-  judgment twice with answers swapped, count a win only if it wins both),
-  **self-preference** (judge from a different model family).
-  [MT-Bench](https://arxiv.org/abs/2306.05685),
-  [CALM biases](https://arxiv.org/html/2410.02736v1).
-
-## Statistics
+## Statistics — and their limits at this sample
 
 - **≥5 runs per (task × arm)** — one run is a Bernoulli draw with no error bar;
   temperature 0 is **not** deterministic
   ([thinkingmachines](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/)).
-- Report a **95% confidence interval** on every rate (`bench-report.js` uses the
-  Wilson interval — closed-form, honest at small N).
-- **Paired tests**: McNemar for binary outcomes, Wilcoxon signed-rank for
-  continuous, comparing whippet vs baseline and whippet vs off
-  ([Adding Error Bars to Evals](https://arxiv.org/abs/2411.00640)).
+- `bench-report.js` reports a Wilson 95% CI per rate. Be blunt about what that
+  buys here: with correctness at **25/25 for every arm**, the CIs only separate
+  *off* from the rest — the one comparison that needed no study. **No paired
+  significance test is claimed**; on a 25/25/25 ceiling McNemar is degenerate
+  (zero discordant pairs). LOC is the only axis with spread.
 - **Report per category**, never only the pooled number (Simpson's paradox).
-- **Pre-register** metrics and weights before looking at results; report **all**
-  runs, never best-of; publish the nulls.
+- **Pre-register** metrics before looking; report **all** runs, never best-of;
+  publish the nulls.
 
 ## Data schema
 
@@ -125,3 +122,7 @@ manifest** — score observed behavior (the ponytail #121 lesson).
 4. Report CIs, per-category splits, and all runs.
 5. State plainly what we did **not** measure (real-bill cost, long-term
    maintainability). Credibility comes from naming our own limits.
+6. **Never define a metric, a test, or a rubric the harness doesn't actually
+   run.** A false claim in one file is not sanctioned by a confession in another —
+   delete it. (This guardrail exists because this doc once asserted paired tests
+   that weren't there.)
