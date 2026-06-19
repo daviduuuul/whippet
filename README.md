@@ -4,10 +4,10 @@
 
 # Whippet
 
-**Your AI agent writes more code than the job needs.**
-**Whippet trims it to the part that earns its keep — and never the part that keeps you safe.**
+**Most "lean code" plugins sell you a number they can't back up.**
+**Whippet ships the discipline — and the receipts.**
 
-<sub>The least code that survives the edge cases. On by default, every session.</sub>
+<sub>A lean-code discipline for Claude Code that measured itself against a one-line baseline, published the nulls, and tells you exactly where it wins and where it doesn't.</sub>
 
 <br>
 
@@ -28,8 +28,6 @@ the wrapper. It all works today. You maintain it forever.
 Whippet gives the agent the judgment of someone who has paid that maintenance
 bill, and writes the smallest thing that holds.
 
-## What it looks like
-
 ```diff
   "Give me a unique id."
 - const { v4 } = require('uuid')      // a new dependency
@@ -42,35 +40,37 @@ bill, and writes the smallest thing that holds.
 
 Same behavior. Less to read, review, and live with.
 
+## Honest by default
+
+This is the part most plugins skip. Whippet ran the experiment and published what
+it found, including the parts that don't flatter it:
+
+- **It ties a one-line nudge.** In a paired A/B, whippet matched a plain *"write
+  less code"* instruction: **3.9 vs 3.6** lines added, **25/25** correct, **0**
+  dependencies either way. It does not beat a good prompt, and the
+  [benchmark note](benchmarks/results/2026-06-19-opus-ab.md) says so in full.
+- **The always-on engine isn't magic.** A drift test on whether it survives a
+  context compaction *better* than a pasted `CLAUDE.md` came back a null — a paste
+  persists for free too. Documented, not buried.
+- **Every claim is backed by a paired run, or it isn't made.** Nulls published,
+  fixtures kept private, no self-reported manifest numbers
+  ([methodology](benchmarks/METHODOLOGY.md)).
+
+So what *is* the product? Not a magic number. **Portable discipline, tested guards,
+and three commands** — installed once instead of pasted into every repo. Modest,
+real, and measured. The reason to trust the lean advice it gives is the same reason
+it told you the above: it doesn't pretend.
+
 ## It won't make you less safe
 
-Lean done carelessly is just fragile, so Whippet knows the lines it doesn't cross:
+Lean done carelessly is just fragile, so whippet knows the lines it doesn't cross:
 
 - **Security stays vetted.** Hashing and crypto reach for bcrypt or argon2, never a hand-rolled shortcut.
-- **Logic ships with a check.** One small test you can actually run, committed beside the code — not run once and thrown away.
+- **Logic ships with a check.** One small test you can actually run, committed beside the code.
 - **Untrusted input gets guarded.** Validation and error handling are never the lines it cuts to look small.
 - **Your tree stays clean.** No scratch files, no commented-out blocks, nothing half-finished.
 
 Ask for the full version and that *is* the spec. It builds the full thing.
-
-## What the benchmark actually says
-
-No slide, no screenshot — an A/B harness ([methodology](benchmarks/METHODOLOGY.md)),
-nulls published.
-
-The honest read of the first run: a disciplined agent ships diffs ~5× smaller than
-an un-nudged one at identical correctness — but a one-line *"write less code"*
-nudge gets the **same** result. On the artifact, whippet **ties** the one-liner; it
-doesn't beat it. So whippet isn't selling you a magic number.
-
-What it sells is that discipline made portable: installed once and applied in every
-repo, dialled (`lite` / `full` / `ultra`), with the review, simplify, and ledger
-commands — instead of a paragraph you paste into each project's `CLAUDE.md` by hand.
-The content is curated and the guards are tested; the packaging is the product.
-
-What it will never do is claim a win it didn't measure. (Smaller diffs are the
-lever Google's 2025 [DORA report](https://dora.dev/dora-report-2025/) ties to lower
-delivery instability.)
 
 ## How it decides
 
@@ -87,17 +87,15 @@ A short ladder. It stops at the first rung that answers the need:
 ## What you get
 
 The product is the **commands** — a reviewer, an apply pass, and a ledger that a
-paragraph in `CLAUDE.md` doesn't give you. The always-on anchor is a convenience
-on top, not the value: it persists the discipline the way a `CLAUDE.md` paste
-already does ([benchmark note](#what-the-benchmark-actually-says)).
+paragraph in `CLAUDE.md` doesn't give you.
 
 | | |
 |---|---|
 | **`/whippet-review`** | Reads your diff and flags code to delete, dependencies you don't need, and shortcuts with no exit plan. Run it before you commit. |
-| **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. Language-agnostic, leaves a passing check behind, flags anything risky instead of touching it. |
+| **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. |
 | **`/whippet-ledger`** | Collects every deferred decision into one list, each with the condition that should reopen it — so a shortcut never disappears into the source. |
 | **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`, at the start of a message. `stop whippet` pauses it for the session. |
-| **Always on** *(convenience)* | A session hook re-anchors the discipline at startup and after a context compaction, so it doesn't quietly vanish. No per-turn token tax. Persists like a `CLAUDE.md` would — install-once across every repo is the gain, not a mechanism edge. |
+| **Always on** *(convenience)* | A session hook re-anchors the discipline at startup and after a context compaction. No per-turn token tax. Persists like a `CLAUDE.md` would — install-once across every repo is the gain. |
 
 ## Install
 
