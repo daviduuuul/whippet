@@ -12,7 +12,7 @@
 <br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.4.0-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.5.0-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>
@@ -57,9 +57,9 @@ it found, including the parts that don't flatter it:
   ([methodology](benchmarks/METHODOLOGY.md)).
 
 So what *is* the product? Not a magic number. **Portable discipline, tested guards,
-and three commands** — installed once instead of pasted into every repo. Modest,
-real, and measured. The reason to trust the lean advice it gives is the same reason
-it told you the above: it doesn't pretend.
+and a set of commands and hooks** — installed once instead of pasted into every repo.
+Modest, real, and measured. The reason to trust the lean advice it gives is the same
+reason it told you the above: it doesn't pretend.
 
 ## It won't make you less safe
 
@@ -86,16 +86,18 @@ A short ladder. It stops at the first rung that answers the need:
 
 ## What you get
 
-The product is the **commands** — a reviewer, an apply pass, and a ledger that a
-paragraph in `CLAUDE.md` doesn't give you.
+The product is the **commands and hooks** — a reviewer, an apply pass, a ledger, and a
+config auditor that a paragraph in `CLAUDE.md` doesn't give you.
 
 | | |
 |---|---|
 | **`/whippet-review`** | Reads your diff and flags code to delete, dependencies you don't need, and shortcuts with no exit plan. Run it before you commit. |
 | **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. |
 | **`/whippet-ledger`** | Collects every deferred decision into one list, each with the condition that should reopen it — so a shortcut never disappears into the source. |
+| **`/whippet-config`** | Audits your Claude Code setup for config drift — broken plugin / hook / MCP / statusLine references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files. Deterministic and read-only: it reports the drift and the fix, you decide. |
 | **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`, at the start of a message. `stop whippet` pauses it for the session. |
 | **Always on** *(convenience)* | A session hook re-anchors the discipline at startup and after a context compaction. No per-turn token tax. Persists like a `CLAUDE.md` would — install-once across every repo is the gain. |
+| **Code↔docs drift** *(hook)* | Change code but not the docs (`CLAUDE.md` / `README` / `docs/`) and a turn-end hook surfaces one quiet reminder — so the docs don't silently rot behind the code. Off with `WHIPPET_DRIFT_OFF=1`. |
 
 ## Install
 

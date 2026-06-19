@@ -15,7 +15,6 @@ description: >
   over-engineering, bloat, boilerplate, scaffolding, or unnecessary
   dependencies. It constrains the code WRITTEN, not how deeply you explore, and
   it never downgrades the model or the reasoning.
-argument-hint: lite | full | ultra | stop
 ---
 
 # Whippet

@@ -1,0 +1,26 @@
+'use strict';
+// Stop: if code changed this session but no docs did, surface ONE yellow advisory.
+// Non-blocking (systemMessage + exit 0), never throws.
+const fs = require('fs');
+const { evaluateDrift, statePath, writeState } = require('./whippet-drift-core');
+
+function threshold() {
+  const raw = process.env.WHIPPET_DRIFT_THRESHOLD;
+  if (raw === undefined) return 3;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 ? n : 3;
+}
+
+try {
+  if (!process.env.WHIPPET_DRIFT_OFF) {
+    let input = {};
+    try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch { /* no stdin */ }
+    const sp = statePath(input);
+    let state = {};
+    try { state = JSON.parse(fs.readFileSync(sp, 'utf8')); } catch { /* nothing tracked */ }
+    const res = evaluateDrift(state, { threshold: threshold() });
+    writeState(sp, res.state);
+    if (res.notify) process.stdout.write(JSON.stringify({ systemMessage: res.message }));
+  }
+} catch { /* never break a session */ }
+process.exit(0);

@@ -1,11 +1,11 @@
 {
   "name": "whippet",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Lean-code discipline plugin for Claude Code",
   "license": "MIT",
   "scripts": {
-    "test": "node whippet/hooks/selftest.js && node scripts/check-manifests.js && node scripts/judge.js selftest && node scripts/bench-score.js selftest && node scripts/bench-report.js selftest && node benchmarks/drift/selftest.js",
+    "test": "node whippet/hooks/selftest.js && node whippet/hooks/whippet-drift.test.js && node whippet/scripts/config-audit.test.js && node scripts/check-manifests.js && node scripts/judge.js selftest && node scripts/bench-score.js selftest && node scripts/bench-report.js selftest && node benchmarks/drift/selftest.js",
     "bump": "node scripts/bump.js",
     "bench": "node scripts/bench-report.js"
   }
