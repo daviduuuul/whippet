@@ -37,6 +37,27 @@ function aggregate(obs) {
   return { arms, byTrap };
 }
 
+const overlap = (a, b) => { const [al, ah] = wilson(a.k, a.n), [bl, bh] = wilson(b.k, b.n); return !(al > bh || bl > ah); };
+
+// One honest conclusion, not a menu of templates. Flags a ceiling (all arms
+// tied → the traps didn't discriminate, so the comparison says nothing), then
+// reads B-vs-C strictly off whether the Wilson intervals actually separate.
+// Pure, unit-tested.
+function verdict(arms) {
+  const out = [];
+  const ps = Object.values(arms).map((c) => c.k / c.n);
+  if (ps.length > 1 && ps.every((p) => p === ps[0])) {
+    out.push(`All arms tied at ${(ps[0] * 100).toFixed(0)}% — these traps did not discriminate (ceiling). Uninformative on the mechanism; needs discriminating traps (yagni / overcut).`);
+  }
+  if (arms.B && arms.C) {
+    const pB = arms.B.k / arms.B.n, pC = arms.C.k / arms.C.n;
+    if (overlap(arms.B, arms.C)) out.push(`B vs C: C ${(pC * 100).toFixed(0)}% vs B ${(pB * 100).toFixed(0)}%, Wilson intervals overlap → no detectable mechanism advantage over a CLAUDE.md paste (whippet = packaging).`);
+    else if (pC > pB) out.push(`B vs C: C ${(pC * 100).toFixed(0)}% > B ${(pB * 100).toFixed(0)}%, intervals separated → a real persistence-mechanism win worth publishing.`);
+    else out.push(`B vs C: B ${(pB * 100).toFixed(0)}% > C ${(pC * 100).toFixed(0)}%, intervals separated → CLAUDE.md outperforms whippet here; investigate.`);
+  }
+  return out;
+}
+
 if (process.argv[2] === 'selftest') {
   const assert = require('node:assert/strict');
   const t = [
@@ -54,6 +75,15 @@ if (process.argv[2] === 'selftest') {
   assert.deepEqual(byTrap['C|stdlib'], { k: 1, n: 2 });
   const [lo, hi] = wilson(1, 1);
   assert.ok(lo >= 0 && hi <= 100 && lo < hi);
+  // verdict: ceiling tie → flags it + reads overlap as no-advantage, never both.
+  const ceiling = verdict({ A: { k: 2, n: 2 }, B: { k: 2, n: 2 }, C: { k: 2, n: 2 } });
+  assert.ok(ceiling.some((l) => /ceiling/.test(l)), 'all-tied must flag ceiling');
+  assert.ok(ceiling.some((l) => /no detectable mechanism advantage/.test(l)));
+  assert.ok(!ceiling.some((l) => /worth publishing/.test(l)), 'overlap must NOT also claim a win');
+  // separated intervals, C far above B → a real win, no overlap line.
+  const win = verdict({ B: { k: 1, n: 20 }, C: { k: 20, n: 20 } });
+  assert.ok(win.some((l) => /real persistence-mechanism win/.test(l)));
+  assert.ok(!win.some((l) => /no detectable/.test(l)));
   console.log('drift-report selftest: pass');
   process.exit(0);
 }
@@ -85,12 +115,10 @@ if (traps.length) {
   }
 }
 
-if (arms.B && arms.C) {
-  const pB = arms.B.k / arms.B.n, pC = arms.C.k / arms.C.n;
-  const gap = ((pC - pB) * 100).toFixed(0);
-  console.log(`\n**B vs C (the decisive comparison):** C ${(pC * 100).toFixed(0)}% − B ${(pB * 100).toFixed(0)}% = ${gap > 0 ? '+' : ''}${gap} pts.`);
-  console.log('Overlapping Wilson intervals → no mechanism advantage over a CLAUDE.md paste (whippet = packaging).');
-  console.log('C clears B with separated intervals → a real persistence-mechanism win worth publishing.');
+const lines = verdict(arms);
+if (lines.length) {
+  console.log('\n**Verdict**\n');
+  for (const l of lines) console.log(`- ${l}`);
 }
 
-module.exports = { aggregate, wilson };
+module.exports = { aggregate, wilson, verdict };
