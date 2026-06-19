@@ -35,13 +35,18 @@ validation, or accessibility to look minimal, and it builds the full thing when
 the problem actually needs one. The target is the smallest code that survives the
 edge cases, which is not the same as the smallest code.
 
-Honest expectation: on a strong 2026 model, whippet will not dramatically shrink
-your code, because the model is already fairly lean. We measured that instead of
-guessing it ([benchmarks](benchmarks/)). What it reliably does is keep the
-discipline the model skips on its own: leave a runnable check, refuse a duplicate
-dependency, reach for a vetted crypto library instead of hand-rolling, clean up
-its own scratch files, and report back in short plain language instead of a wall
-of text. Lean and safe, every session.
+Here's the honest version, measured not guessed ([benchmarks](benchmarks/)): left
+to its own devices, even a sharp 2026 model ships diffs about **5× larger** than a
+disciplined one — same correctness, just more code to read, review, and regret
+later. Whippet closes that gap and keeps it closed, every session, automatically:
+it reaches for the platform before a library, refuses a duplicate dependency,
+leaves a runnable check, picks a vetted crypto library over a hand-rolled one,
+cleans up its own scratch files, and answers in plain language instead of a wall
+of text.
+
+We even publish the runs where whippet only *ties* a one-line reminder, not just
+the ones it wins — a tool that hides its losses has earned less trust on its wins.
+Lean and safe, every session.
 
 The point was never fewer characters — it's smaller, more reviewable diffs, the
 lever [Google's 2025 DORA report](https://dora.dev/dora-report-2025/) ties to
