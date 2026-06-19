@@ -2,3 +2,9 @@ node_modules/
 .serena/
 tmp/
 .scratch/
+
+research/
+
+# Private benchmark fixtures — public tasks leak into training (METHODOLOGY.md).
+benchmarks/fixtures/overcut-validation/
+benchmarks/fixtures/batch-multistep/

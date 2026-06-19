@@ -78,8 +78,9 @@ test it ran once and threw away.
 And it cleans up after itself. No scratch files, no commented-out blocks, nothing
 half-finished left in your tree.
 
-It cuts complexity, never correctness. The claims here come from real A/B runs,
-not a percentage off a slide.
+It cuts complexity, never correctness. The bar for any claim here is a paired A/B
+run under a [pre-registered methodology](benchmarks/METHODOLOGY.md) — not a
+percentage off a slide.
 
 ## What you get
 
@@ -132,7 +133,7 @@ Original work, but it owes two earlier projects:
 [Ponytail](https://github.com/DietrichGebert/ponytail) for the lazy-senior YAGNI
 ladder, and [Caveman](https://github.com/JuliusBrussee/caveman) for short agent
 replies. Whippet puts both in one place, draws the lines where they would
-otherwise cost you correctness, and backs what it claims with
+otherwise cost you correctness, and holds its claims to
 [A/B tests](benchmarks/) instead of screenshots, including where it does not help.
 
 ## License

@@ -44,9 +44,20 @@ uses small **real fixture repos** under [`fixtures/`](fixtures/): a starting rep
 snapshot (`before/`), a task, a **hidden objective grader**, and a lean reference
 solution. Each fixture targets a place bloat sneaks in, and several are **traps**:
 
-- a needed dependency already exists in the repo — reuse it, or re-add it?
-- the job is a stdlib one-liner — reach for a new dep, or not?
-- the right answer is *don't build it* (YAGNI).
+- a needed dependency already exists in the repo — reuse it, or re-add it? (`trap_reuse`)
+- the job is a stdlib one-liner — reach for a new dep, or not? (`trap_stdlib`)
+- the right answer is *don't build it* (YAGNI). (`trap_yagni`)
+- a real boundary needs a guard — keep the validation, or shave it to look lean? (`trap_overcut`)
+- a multi-step change — one small focused diff, or a large multi-file batch? (`batch_size`)
+
+The last two ground claims whippet already makes. `trap_overcut` makes the
+correctness gate bite from both sides: its grader feeds untrusted input and fails
+a candidate that dropped the guard to shrink the diff — so "can't be gamed by
+deleting needed code" (below) is enforced, not just asserted. `batch_size` is the
+[DORA](https://dora.dev/dora-report-2025/) small-batches lever: a multi-step task
+where the lean path is a small diff; correctness stays the gate, and the batch
+signal is *scored* (per-category `loc_added`/`files_added`, surfaced by
+`bench-report.js` since the arm-wide means dilute it), never graded.
 
 Keep fixtures **private/unpublished** — anything public leaks into training
 ([OpenAI retired SWE-bench Verified](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)

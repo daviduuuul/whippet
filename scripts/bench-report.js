@@ -9,6 +9,32 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const dir = path.join(root, 'benchmarks/results');
 
+// Mean of a numeric field over observations matching a category + arm; null if
+// none. Pulled out so the batch_size signal can be read per category (the
+// arm-wide means below dilute it) and so it's unit-checkable.
+// Run: node scripts/bench-report.js selftest
+function perCatMean(observations, cat, arm, key) {
+  const vals = observations.filter((o) => o.category === cat && o.arm === arm && typeof o[key] === 'number').map((o) => o[key]);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+if (process.argv[2] === 'selftest') {
+  const assert = require('node:assert/strict');
+  const t = [
+    { category: 'batch_size', arm: 'whippet', loc_added: 10, files_added: 1 },
+    { category: 'batch_size', arm: 'whippet', loc_added: 20, files_added: 3 },
+    { category: 'batch_size', arm: 'off', loc_added: 80, files_added: 6 },
+    { category: 'trap_reuse', arm: 'whippet', loc_added: 4, files_added: 0 },
+  ];
+  assert.equal(perCatMean(t, 'batch_size', 'whippet', 'loc_added'), 15);
+  assert.equal(perCatMean(t, 'batch_size', 'whippet', 'files_added'), 2);
+  assert.equal(perCatMean(t, 'batch_size', 'off', 'loc_added'), 80);
+  assert.equal(perCatMean(t, 'trap_reuse', 'whippet', 'loc_added'), 4);
+  assert.equal(perCatMean(t, 'batch_size', 'baseline', 'loc_added'), null, 'no obs → null, not 0');
+  console.log('bench-report selftest: pass');
+  process.exit(0);
+}
+
 const obs = [];
 if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir)) {
   const p = path.join(dir, f);
@@ -91,5 +117,20 @@ if (cats.length) {
       return `${vals.filter((o) => o.correct).length}/${vals.length}`;
     };
     console.log(`| ${cat} | ${arms.map(inCat).join(' | ')} |`);
+  }
+}
+
+// Per-category diff size — the batch_size signal the arm-wide means above hide.
+const DIFF = [['loc_added', 'LOC'], ['files_added', 'files']];
+const catsNum = [...new Set(obs.filter((o) => o.category && DIFF.some(([k]) => typeof o[k] === 'number')).map((o) => o.category))];
+if (catsNum.length) {
+  console.log(`\n**Diff size by category** (mean ${DIFF.map(([, l]) => l).join(' / ')})\n`);
+  console.log(header(['Category', ...arms]));
+  for (const cat of catsNum) {
+    const fmt = (arm) => {
+      const parts = DIFF.map(([key]) => { const m = perCatMean(obs, cat, arm, key); return m === null ? '—' : m.toFixed(1); });
+      return parts.every((p) => p === '—') ? '—' : parts.join(' / ');
+    };
+    console.log(`| ${cat} | ${arms.map(fmt).join(' | ')} |`);
   }
 }
