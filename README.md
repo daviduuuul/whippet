@@ -88,6 +88,7 @@ A short ladder. It stops at the first rung that answers the need:
 | **Always on** | A session hook re-applies the discipline at startup and on every turn. It doesn't drift mid-session or vanish after a context compaction. |
 | **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`. `stop whippet` pauses it for the session. |
 | **`/whippet-review`** | Reads your diff and flags code to delete, dependencies you don't need, and shortcuts with no exit plan. Run it before you commit. |
+| **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. Language-agnostic, leaves a passing check behind, flags anything risky instead of touching it. |
 | **`/whippet-ledger`** | Collects every deferred decision into one list, each with the condition that should reopen it — so a shortcut never disappears into the source. |
 
 ## Install

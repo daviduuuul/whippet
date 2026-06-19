@@ -16,6 +16,11 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   guidance.
 
 ### Added
+- `/whippet-simplify`: the apply half of `/whippet-review`. Runs the same lean
+  lens (dead code, reinvented logic, redundant deps, premature abstraction) and
+  applies the behavior-preserving cuts — language-agnostic, mode-aware — while
+  refusing to simplify away validation, security, or the runnable check. Leaves
+  the tree clean and a check passing; risky cuts are flagged, not applied.
 - Release tooling: `npm run bump <version>` keeps the version in sync across
   `package.json`, both manifests, and the README badge; `scripts/check-manifests.js`
   fails the build (via `npm test`) on any desync or a hooks.json pointing at a
