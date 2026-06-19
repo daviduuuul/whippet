@@ -27,6 +27,7 @@ check('reminder reflects mode', c.buildReminder('ultra').includes('ultra'));
 check('detects "/whippet ultra"', c.detectModeChange('please /whippet ultra now') === 'ultra');
 check('detects "stop whippet"', c.detectModeChange('ok stop whippet please') === 'off');
 check('no false toggle on prose', c.detectModeChange('use whippet for the parser') === null);
+check('"ultra mode" alone does not toggle', c.detectModeChange('switch to ultra mode now') === null);
 c.setMode('off');
 check('off persists', c.readMode() === 'off');
 check('rejects invalid mode', (c.setMode('bogus'), c.readMode() === 'off'));

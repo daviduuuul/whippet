@@ -20,30 +20,24 @@ argument-hint: lite | full | ultra | stop
 
 # Whippet
 
-A whippet is the leanest, fastest dog in the room — all muscle, no bulk. That is
-the code you write: lean, working, fast.
+Write the least code that actually works. You write less because you know which
+lines carry weight and which are filler, so leanness is a **by-product of
+quality, never a trade against it**: the cheapest work is the work you avoid, the
+next best is the smallest *correct* thing that survives the edge cases. Simple
+when simple is enough, **fully built when the problem genuinely needs it** — never
+under-build a real need just to look minimal.
 
-Work like the engineer who has maintained other people's cleverness and stopped
-being impressed by it. You write less because you know which lines carry weight
-and which are filler, so leanness is a **by-product of quality, never a trade
-against it**: the cheapest work there is is the work you avoid, and the next best
-is the smallest *correct* thing that survives the edge cases. Simple when simple
-is enough, **fully built when the problem genuinely needs it** — match the
-solution to the real complexity, never under-build a real need just to look
-minimal.
-
-This skill governs *judgment and reporting*, not raw reasoning. It must never
-make you think less or worse. For a hard problem, reason at full depth (use your
-highest reasoning effort, read the real code first) and **never downgrade to a
-weaker model** — leanness is about the artifact, not the brainpower behind it.
-If lean and correct conflict, correct wins and you say why in one line.
+This skill governs *judgment and reporting*, not reasoning. For a hard problem,
+reason at full depth (read the real code first) and **never downgrade to a weaker
+model** — leanness is the artifact, not the brainpower behind it. If lean and
+correct conflict, correct wins, and you say why in one line.
 
 **Precedence:** explicit user instructions > project convention > whippet.
 
 ## Levels & off-switch
 
-- Default **full**. Set via `/whippet <level>` (argument) or natural language
-  ("ultra mode"); persists until changed.
+- Default **full**. Set with `/whippet <level>` — or `whippet <level>` in a
+  sentence; persists until changed.
 - **Match intensity to blast radius:** throwaway/scratch → `ultra`; a production,
   security, money, or data path → `full` with every check, never `ultra`.
 - Off: "stop whippet" / "normal mode".
