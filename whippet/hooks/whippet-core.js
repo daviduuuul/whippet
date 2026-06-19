@@ -47,17 +47,20 @@ function setMode(mode) {
   }
 }
 
-// Detect an explicit mode change in the user's prompt. Conservative on purpose:
-// only a clear "/whippet <level>" or "stop whippet" flips state, so normal
-// prose that mentions the word doesn't toggle anything.
+// Detect an explicit mode change in the user's prompt. Only a command at the
+// START of the message flips state — mid-sentence prose that merely mentions the
+// words ("should I use whippet full?", "stop whippet from deleting my tests",
+// "normal mode in vim") must NOT toggle, because the tracker only speaks on a
+// change, so a false flip is silent and the user gets bloated diffs with no clue
+// why. No "normal mode" alias: too ubiquitous in coding talk to be a kill switch.
 function detectModeChange(prompt) {
   const s = String(prompt || '');
-  let m = s.match(/(?:^|\s)[\/@]?whippet\s+(lite|full|ultra|stop|off)\b/i);
+  const m = s.match(/^\s*[\/@]?whippet\s+(lite|full|ultra|stop|off)\b/i);
   if (m) {
     const v = m[1].toLowerCase();
     return v === 'stop' ? 'off' : v;
   }
-  if (/\b(stop whippet|whippet off|normal mode)\b/i.test(s)) return 'off';
+  if (/^\s*(stop whippet|whippet off)\b/i.test(s)) return 'off';
   return null;
 }
 

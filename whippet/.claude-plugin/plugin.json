@@ -1,6 +1,6 @@
 {
   "name": "whippet",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Write code the lean way — the least code that actually works. A lazy-senior YAGNI discipline plus terse, concrete reporting.",
   "author": { "name": "daviduuuul" },
   "homepage": "https://github.com/daviduuuul/whippet",

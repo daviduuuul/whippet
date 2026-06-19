@@ -75,7 +75,11 @@ partly over contamination + flawed graders). Treat any public task as burned.
   (`module.exports`) — the module convention the task never specifies, so it isn't
   a scoring confound (`fixtures/_load.mjs`).
 - **LOC added**, files added (proxy for size — never a target on its own; LOC is
-  gameable, [Goodhart](https://getdx.com/blog/lines-of-code/)).
+  gameable, [Goodhart](https://getdx.com/blog/lines-of-code/)). Counts lines
+  *added or changed* vs `before`, not the net line delta — an in-place rewrite
+  (`return 1` → `return compute()`) is a real change a net count misses. **Note:
+  the 2026-06-19 A/B numbers were scored with the older net-delta method**, so
+  they under-count in-place edits; re-runs use the line-change count.
 - **Dependencies added** — manifest diff. Fully objective.
 - **Reuse** — did the candidate call the existing helper the fixture flags?
   Recorded **only for `trap_reuse`**, where reuse is the rung under test (call
