@@ -24,9 +24,14 @@ check('payload reflects mode', c.buildPayload('full').includes('mode: full'));
 c.setMode('ultra');
 check('setMode persists ultra', c.readMode() === 'ultra');
 check('reminder reflects mode', c.buildReminder('ultra').includes('ultra'));
-check('detects "/whippet ultra"', c.detectModeChange('please /whippet ultra now') === 'ultra');
-check('detects "stop whippet"', c.detectModeChange('ok stop whippet please') === 'off');
-check('no false toggle on prose', c.detectModeChange('use whippet for the parser') === null);
+check('detects "/whippet ultra" at start', c.detectModeChange('/whippet ultra now') === 'ultra');
+check('detects "whippet lite" at start', c.detectModeChange('whippet lite please') === 'lite');
+check('detects "stop whippet" at start', c.detectModeChange('stop whippet please') === 'off');
+// Real footgun probes: mid-sentence prose must NEVER flip state (silent diffs).
+check('prose: "normal mode" does not toggle', c.detectModeChange('in vim, press escape for normal mode') === null);
+check('prose: "back to normal mode" does not toggle', c.detectModeChange('lets switch back to normal mode for the editor') === null);
+check('prose: asking "whippet full?" does not toggle', c.detectModeChange('should I use whippet full or whippet lite?') === null);
+check('prose: "stop whippet from…" does not toggle', c.detectModeChange('I had to stop whippet from deleting my tests') === null);
 check('"ultra mode" alone does not toggle', c.detectModeChange('switch to ultra mode now') === null);
 c.setMode('off');
 check('off persists', c.readMode() === 'off');

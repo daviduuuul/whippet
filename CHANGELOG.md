@@ -2,9 +2,34 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
-## [Unreleased]
+## [1.4.0] — 2026-06-19
+
+### Fixed (adversarial review, round 4)
+- **`detectModeChange` silently flipped mode on innocent prose** — `"normal mode"`
+  in any sentence, `"stop whippet from deleting my tests"`, even asking `"should I
+  use whippet full?"` all toggled state; and since the tracker only speaks on a
+  change, the flip was silent (bloated diffs, no clue why). Now only a command at
+  the **start of a message** flips it, the `normal mode` alias is gone, and the
+  selftest locks the real prose probes instead of cherry-picked strings.
+- **`loc_added` counted the net line delta** — an in-place rewrite (`return 1` →
+  `return compute()`) scored 0, and LOC is the only axis with spread. Now counts
+  lines added *or changed* (A/B numbers pre-date the fix; flagged in METHODOLOGY).
+- **The grader ran without a timeout** — an infinite loop in a candidate (exactly
+  the bug class under test) hung the harness. 10s timeout.
+- **`reused` was a substring grep** — it counted a mention in a comment. Now strips
+  line comments first: a call, not a mention.
+- **`ponytail` (a competitor's name) was in the skill triggers** — removed.
+- **README's flagship example had the `|| 0` footgun** — `Number(process.env.PORT)
+  || 3000` returns 3000 for `PORT=0`, under a tagline that says "survives the edge
+  cases". Fixed.
+- **CI ran only `ubuntu-latest`** — the real risk surface is Windows (NTFS
+  `renameSync`, Git Bash, path quoting). Added `windows-latest` to the matrix.
 
 ### Changed
+- **Repositioned: the product is the three commands**, not the always-on engine.
+  The drift pilot is a null and `CLAUDE.md` re-injects for free after compaction, so
+  the README no longer sells the engine as the value — install-once portability plus
+  the review/simplify/ledger commands is what a `CLAUDE.md` paste can't replicate.
 - **Fixed the `reused` metric mislabel — whippet's last apparent edge was an
   artifact** (third review). The boolean had been recorded across three categories
   whose right answer is three *different* rungs (reuse existing code, take the

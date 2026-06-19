@@ -12,7 +12,7 @@
 <br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.3.0-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.4.0-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>
@@ -37,7 +37,7 @@ bill, and writes the smallest thing that holds.
 
   "Read PORT, default to 3000."
 - class Config { /* 30 lines, one schema, one default */ }
-+ Number(process.env.PORT) || 3000
++ process.env.PORT ? Number(process.env.PORT) : 3000
 ```
 
 Same behavior. Less to read, review, and live with.
@@ -86,13 +86,18 @@ A short ladder. It stops at the first rung that answers the need:
 
 ## What you get
 
+The product is the **commands** — a reviewer, an apply pass, and a ledger that a
+paragraph in `CLAUDE.md` doesn't give you. The always-on anchor is a convenience
+on top, not the value: it persists the discipline the way a `CLAUDE.md` paste
+already does ([benchmark note](#what-the-benchmark-actually-says)).
+
 | | |
 |---|---|
-| **Always on** | A session hook re-anchors the discipline at startup and after a context compaction (when the conversation gets summarized), so it doesn't quietly vanish. No per-turn token tax. |
-| **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`. `stop whippet` pauses it for the session. |
 | **`/whippet-review`** | Reads your diff and flags code to delete, dependencies you don't need, and shortcuts with no exit plan. Run it before you commit. |
 | **`/whippet-simplify`** | The apply half of the review: deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to simplify away a validation, a security guard, or your one runnable check. Language-agnostic, leaves a passing check behind, flags anything risky instead of touching it. |
 | **`/whippet-ledger`** | Collects every deferred decision into one list, each with the condition that should reopen it — so a shortcut never disappears into the source. |
+| **Three intensities** | `/whippet lite` · `/whippet full` (default) · `/whippet ultra`, at the start of a message. `stop whippet` pauses it for the session. |
+| **Always on** *(convenience)* | A session hook re-anchors the discipline at startup and after a context compaction, so it doesn't quietly vanish. No per-turn token tax. Persists like a `CLAUDE.md` would — install-once across every repo is the gain, not a mechanism edge. |
 
 ## Install
 

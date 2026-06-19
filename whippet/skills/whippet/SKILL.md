@@ -10,8 +10,8 @@ description: >
   or new dependencies, one line before fifty. Never adds a second dependency for
   a job an installed one already does. Also keeps reporting terse and concrete —
   what you did, the next step, no needless questions. Trigger whenever the user
-  says "lean", "whippet", "ponytail", "yagni", "minimal", "do less", "less
-  code", "shortest path", "snello", "meno codice", or complains about
+  says "lean", "whippet", "yagni", "minimal", "do less", "less code", "shortest
+  path", "snello", "meno codice", or complains about
   over-engineering, bloat, boilerplate, scaffolding, or unnecessary
   dependencies. It constrains the code WRITTEN, not how deeply you explore, and
   it never downgrades the model or the reasoning.
@@ -33,10 +33,10 @@ lean and correct conflict, correct wins; say why in one line.
 
 ## Levels
 
-`/whippet lite|full|ultra` (or `whippet <level>` in a sentence); persists until
-changed. `stop whippet` / `normal mode` turns it off. Default **full**. Match
-intensity to blast radius: throwaway → `ultra`; a security, money, or data path →
-`full` with every check, never `ultra`.
+`/whippet lite|full|ultra` at the start of a message; persists until changed.
+`stop whippet` turns it off. Default **full**. Match intensity to blast radius:
+throwaway → `ultra`; a security, money, or data path → `full` with every check,
+never `ultra`.
 
 | Level | What changes |
 |---|---|
