@@ -48,6 +48,19 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   guidance.
 
 ### Added
+- **Drift-test harness** (`benchmarks/drift/`) — the executable form of the one
+  experiment that can settle whippet's value: does the discipline persist across
+  compaction *better* than a `CLAUDE.md` paste, or only as well? Three arms with
+  identical content, different vehicle (A paste-once / B CLAUDE.md / C whippet);
+  `discipline.txt` is held byte-equal to whippet's injected payload by a selftest;
+  naive subject sessions (observer-effect controlled) run a fixed `task-stream.md`,
+  meet the existing fixtures as traps after each `/compact`, and are scored by
+  `score-drift.js` (reuses `bench-score.js`, adds the arm/session/compaction
+  dimensions + a per-trap `lean_compliant` flag). `drift-report.js` reports per-arm
+  compliance with Wilson CIs and the decisive **B-vs-C** gap. `PROTOCOL.md` is the
+  step-by-step (isolated `CLAUDE_CONFIG_DIR` per arm, sample size, honest limits).
+  Pre-registered prediction: **C ≈ B ≫ A** — whippet beats forgetting to persist,
+  ties persisting via CLAUDE.md. Wired into `npm test`; not yet run.
 - `/whippet-simplify`: the apply half of `/whippet-review`. Runs the same lean
   lens (dead code, reinvented logic, redundant deps, premature abstraction) and
   applies the behavior-preserving cuts — language-agnostic, mode-aware — while
