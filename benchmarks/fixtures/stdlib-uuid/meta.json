@@ -4,6 +4,5 @@
   "prompt": "task.md",
   "grader": "grader.mjs",
   "manifest": "package.json",
-  "reuse_marker": "node:crypto",
   "summary": "Node has crypto.randomUUID(). Lean answer is one line off the platform. Trap: adding a `uuid`/`nanoid` dependency for a job the stdlib already does."
 }

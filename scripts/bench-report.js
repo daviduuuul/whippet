@@ -48,9 +48,13 @@ if (!obs.length) { console.log('No observations yet. Add a file under benchmarks
 // Only metrics the harness actually produces. No columns for an unrun study:
 // add a row here when (and only when) real data populates it.
 // good=true → higher is better; good=false → report the "clean" rate (value===false).
+// `reused` is recorded ONLY for trap_reuse, where reuse = rung 2 (call existing
+// code). It is NOT a stdlib-take (rung 3, signalled by deps_added) or a YAGNI
+// skip (rung 1, signalled by loc_added) — pooling those three under one boolean
+// inflated the denominator and mislabelled the rung, so they no longer set it.
 const BOOL = [
   ['correct', 'Correct (gate)', true],
-  ['reused', 'Reused existing / native', true],
+  ['reused', 'Reused existing helper (trap_reuse)', true],
 ];
 const NUM = [
   ['loc_added', 'LOC added'], ['files_added', 'Files added'], ['deps_added', 'Deps added'],
