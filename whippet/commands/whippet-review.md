@@ -8,13 +8,11 @@ given, else the working diff.
 
 1. Get the diff: `git diff --staged` and `git diff` (or the range in
    `$ARGUMENTS`). If nothing is staged or changed, say so and stop.
-2. Review each changed hunk. Flag only real issues:
-   - **Removable / dead:** code, files, or branches nothing needs (YAGNI).
-   - **Reinvented:** logic stdlib, a native platform feature, or existing code
-     already covers (name the existing symbol if you find it).
-   - **Unjustified dependency:** a new dep doing what a few lines or an installed
-     package would; a duplicate or overlapping library.
-   - **Premature abstraction:** interface/factory/config with a single use.
+2. Review each changed hunk. Flag only real issues — the same lean lens as
+   `/whippet-simplify` step 2 (dead/removable code, reinvented logic, redundant
+   dependency, premature abstraction, needless indirection), **diagnose-only** here,
+   naming the existing symbol when something is reinvented. Plus the checks that are
+   review's own:
    - **`whippet:` without a ceiling:** a shortcut comment naming no upgrade path.
    - **Missing check:** non-trivial logic with no runnable check left behind.
    - **Oversized batch:** a hunk mixing unrelated changes, or a diff too large to

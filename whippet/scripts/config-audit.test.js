@@ -433,6 +433,48 @@ ck('version drift: installed behind source -> warning',
 ck('version match -> no out-of-date finding',
   !hasFinding(mkWithSourceVersion('2.0.0', '2.0.0'), 'marketplace', 'plugin out of date'));
 
+/* ---------------- relative script paths resolve against configDir (no false positive) ---------------- */
+{ // C8 relative hook path that exists under configDir -> NOT flagged
+  const root = tmp(); const cfg = path.join(root, '.claude');
+  withReal(cfg, path.join('hooks', 'rel.js'));
+  writeJSON(path.join(cfg, 'settings.json'), { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'node "hooks/rel.js"' }] }] } });
+  ck('C8 relative hook path under configDir -> no false positive', count(audit(cfg), 'hooks') === 0);
+}
+{ // C9 relative hook path that exists nowhere -> still an error
+  const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'node "hooks/ghost-xyz-nope.js"' }] }] } } });
+  ck('C9 relative hook path missing -> error', hasFinding(r, 'hooks', 'hook script missing: PreToolUse'));
+}
+{ // D5 relative statusLine path under configDir -> NOT flagged
+  const root = tmp(); const cfg = path.join(root, '.claude');
+  withReal(cfg, 'status.js');
+  writeJSON(path.join(cfg, 'settings.json'), { statusLine: { command: 'node "status.js"' } });
+  ck('D5 relative statusLine under configDir -> no false positive', count(audit(cfg), 'statusline') === 0);
+}
+
+/* ---------------- O. settings.local.json content (not just JSON validity) ---------------- */
+{ // O1 broken hook script in settings.local.json -> error
+  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'),
+    { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: `node "${path.join(os.tmpdir(), 'no-local-hook-xyz.js')}"` }] }] } }) });
+  ck('O1 broken hook in settings.local.json -> error', hasFinding(r, 'hooks', 'hook script missing: PreToolUse'));
+}
+{ // O2 plugin enabled only in settings.local.json but not installed -> error
+  const r = run({ settings: {}, installed: { plugins: {} },
+    extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { enabledPlugins: { 'ghost@m': true } }) });
+  ck('O2 local-only enabled, not installed -> error', hasFinding(r, 'plugins', 'enabled but not installed: ghost@m'));
+}
+{ // O3 malformed permission rule in settings.local.json -> warning
+  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { permissions: { allow: ['Bash npm'] } }) });
+  ck('O3 malformed rule in settings.local.json -> warning', hasFinding(r, 'permissions', 'malformed permission rule: allow'));
+}
+{ // O4 valid settings.local.json -> no false positive
+  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { permissions: { allow: ['WebFetch'] }, statusLine: { type: 'command', command: 'echo hi' } }) });
+  ck('O4 valid settings.local.json -> clean', r.findings.length === 0);
+}
+{ // O5 invalid hook event in settings.local.json -> error (structural check runs on local)
+  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { hooks: { BadEvent: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } }) });
+  ck('O5 unknown event in settings.local.json -> error', hasFinding(r, 'hooks', 'unknown hook event: BadEvent'));
+}
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);

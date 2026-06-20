@@ -3,6 +3,7 @@
  * config-audit — read-only drift detector for a Claude Code config dir.
  * Deterministic facts only (no LLM): what's enabled vs installed, broken
  * references, fragile sources, orphaned files. Emits findings; fixes nothing.
+ * Reads settings.json AND settings.local.json (overrides accumulate the same rot).
  *
  * Usage:  node config-audit.js [--dir <configDir>] [--json]
  * configDir resolution: --dir  >  $CLAUDE_CONFIG_DIR  >  ~/.claude
@@ -25,6 +26,15 @@ function readJSON(p) {
 }
 function exists(p) { try { fs.accessSync(p); return true; } catch { return false; } }
 function safeReaddir(p) { try { return fs.readdirSync(p); } catch { return []; } }
+
+// A hook/statusLine script path may be absolute or relative; Claude Code resolves
+// a relative one against the config dir. Treat it as present if it exists either
+// relative to configDir or as given (cwd-relative) — only flag when neither does,
+// so a working relative path is never a false positive.
+function scriptMissing(sp, configDir) {
+  if (path.isAbsolute(sp)) return !exists(sp);
+  return !exists(path.join(configDir, sp)) && !exists(sp);
+}
 
 // Pull a script-file path out of a hook/statusLine command string, if any.
 function extractScriptPath(cmd) {
@@ -109,6 +119,11 @@ function audit(configDir) {
   }
   const s = asObj(settings.data) || {};
 
+  // settings.local.json overrides settings.json; its hooks/statusLine/permissions/
+  // plugins are part of the effective config, so they get the same structural checks.
+  const localR = readJSON(path.join(configDir, 'settings.local.json'));
+  const local = localR.ok ? asObj(localR.data) : null;
+
   const installed = readJSON(path.join(configDir, 'plugins', 'installed_plugins.json'));
   const installedOk = !!(installed.ok && asObj(installed.data) && asObj(installed.data.plugins));
   const installedPlugins = installedOk ? installed.data.plugins : {};
@@ -117,7 +132,9 @@ function audit(configDir) {
       'settings.json:enabledPlugins must map "name@marketplace" to true/false',
       'fix the enabledPlugins shape', 'settings.json:enabledPlugins');
   }
-  const enabled = asObj(s.enabledPlugins) || {};
+  // local wins per key, matching Claude Code precedence, so a plugin enabled only
+  // in settings.local.json is still checked against what's installed.
+  const enabled = { ...(asObj(s.enabledPlugins) || {}), ...(local ? asObj(local.enabledPlugins) || {} : {}) };
   const anyEnabled = Object.values(enabled).some(v => v === true);
 
   // If the inventory is unreadable, say so once — don't flag every plugin.
@@ -196,45 +213,93 @@ function audit(configDir) {
     }
   }
 
-  // 3. hooks: unknown event name, bad matcher, missing command, missing script
-  const hooks = asObj(s.hooks) || {};
-  for (const [event, groups] of Object.entries(hooks)) {
-    if (!HOOK_EVENTS.has(event)) {
-      add('error', 'hooks', `unknown hook event: ${event}`,
-        'this event name is not recognized, so the hook will never fire',
-        `use one of: ${[...HOOK_EVENTS].join(', ')}`, `settings.json:hooks.${event}`);
+  // 3. structural checks that apply to any settings object — run for both
+  //    settings.json and settings.local.json (label keeps the evidence honest).
+  function checkStructured(cfgObj, label) {
+    const o = asObj(cfgObj);
+    if (!o) return;
+
+    // hooks: unknown event name, bad matcher, missing command, missing script
+    const hooks = asObj(o.hooks) || {};
+    for (const [event, groups] of Object.entries(hooks)) {
+      if (!HOOK_EVENTS.has(event)) {
+        add('error', 'hooks', `unknown hook event: ${event}`,
+          'this event name is not recognized, so the hook will never fire',
+          `use one of: ${[...HOOK_EVENTS].join(', ')}`, `${label}:hooks.${event}`);
+      }
+      if (!Array.isArray(groups)) continue;
+      for (const g of groups) {
+        if (g && g.matcher != null) {
+          try { new RegExp(g.matcher); }
+          catch {
+            add('error', 'hooks', `invalid hook matcher: ${event}`,
+              `the matcher is not a valid regex: ${g.matcher}`,
+              'fix the matcher pattern', `${label}:hooks.${event}`);
+          }
+        }
+        for (const h of (g && g.hooks) || []) {
+          if (h && h.type && !HOOK_TYPES.has(h.type)) {
+            add('warning', 'hooks', `unknown hook type: ${event}`,
+              `hook type "${h.type}" is not recognized, so the hook does nothing`,
+              'use command, prompt, agent, or http', `${label}:hooks.${event}`);
+          }
+          if (h && h.type === 'command' && !h.command) {
+            add('error', 'hooks', `hook missing command: ${event}`,
+              'a command-type hook has no command string',
+              'add a command or remove the hook', `${label}:hooks.${event}`);
+            continue;
+          }
+          const sp = extractScriptPath(h && h.command);
+          if (sp && scriptMissing(sp, configDir)) {
+            add('error', 'hooks', `hook script missing: ${event}`,
+              `a ${event} hook command points to a file that does not exist: ${sp}`,
+              'fix the path or remove the hook', `${label}:hooks.${event}`);
+          }
+        }
+      }
     }
-    if (!Array.isArray(groups)) continue;
-    for (const g of groups) {
-      if (g && g.matcher != null) {
-        try { new RegExp(g.matcher); }
-        catch {
-          add('error', 'hooks', `invalid hook matcher: ${event}`,
-            `the matcher is not a valid regex: ${g.matcher}`,
-            'fix the matcher pattern', `settings.json:hooks.${event}`);
+
+    // statusLine pointing at a missing script
+    if (o.statusLine && o.statusLine.command) {
+      const sp = extractScriptPath(o.statusLine.command);
+      if (sp && scriptMissing(sp, configDir)) {
+        add('error', 'statusline', 'statusLine script missing',
+          `statusLine command points to a missing file: ${sp}`,
+          'fix the path or remove statusLine', `${label}:statusLine`);
+      }
+    }
+
+    // malformed permission rules (silently ignored, so a guard may not apply)
+    const perms = asObj(o.permissions) || {};
+    for (const key of ['allow', 'deny', 'ask']) {
+      if (!Array.isArray(perms[key])) continue;
+      for (const rule of perms[key]) {
+        if (typeof rule !== 'string' || !PERMISSION_RULE.test(rule)) {
+          add('warning', 'permissions', `malformed permission rule: ${key}`,
+            `${JSON.stringify(rule)} is not a valid rule (expected ToolName or ToolName(pattern))`,
+            'fix the rule shape', `${label}:permissions.${key}`);
         }
       }
-      for (const h of (g && g.hooks) || []) {
-        if (h && h.type && !HOOK_TYPES.has(h.type)) {
-          add('warning', 'hooks', `unknown hook type: ${event}`,
-            `hook type "${h.type}" is not recognized, so the hook does nothing`,
-            'use command, prompt, agent, or http', `settings.json:hooks.${event}`);
-        }
-        if (h && h.type === 'command' && !h.command) {
-          add('error', 'hooks', `hook missing command: ${event}`,
-            'a command-type hook has no command string',
-            'add a command or remove the hook', `settings.json:hooks.${event}`);
-          continue;
-        }
-        const sp = extractScriptPath(h && h.command);
-        if (sp && !exists(sp)) {
-          add('error', 'hooks', `hook script missing: ${event}`,
-            `a ${event} hook command points to a file that does not exist: ${sp}`,
-            'fix the path or remove the hook', `settings.json:hooks.${event}`);
-        }
-      }
+    }
+
+    // closed-set enums + statusLine type (a typo silently reverts to default / goes inert)
+    if (o.permissions && o.permissions.defaultMode !== undefined && !DEFAULT_MODES.has(o.permissions.defaultMode)) {
+      add('warning', 'settings', `invalid permissions.defaultMode: ${o.permissions.defaultMode}`,
+        'not a recognized mode; Claude Code silently falls back to default',
+        `use one of: ${[...DEFAULT_MODES].join(', ')}`, `${label}:permissions.defaultMode`);
+    }
+    if (o.autoUpdatesChannel !== undefined && !UPDATE_CHANNELS.has(o.autoUpdatesChannel)) {
+      add('warning', 'settings', `invalid autoUpdatesChannel: ${o.autoUpdatesChannel}`,
+        'not a recognized channel', `use one of: ${[...UPDATE_CHANNELS].join(', ')}`, `${label}:autoUpdatesChannel`);
+    }
+    if (o.statusLine && o.statusLine.type && o.statusLine.type !== 'command') {
+      add('warning', 'statusline', `statusLine type not 'command': ${o.statusLine.type}`,
+        'only "command" is supported, so the statusLine is inert',
+        'set statusLine.type to "command"', `${label}:statusLine.type`);
     }
   }
+  checkStructured(s, 'settings.json');
+  checkStructured(local, 'settings.local.json');
 
   // 3b. MCP servers (.mcp.json / .claude.json): invalid transport / missing command|url
   for (const [name, def] of Object.entries(collectMcp(configDir))) {
@@ -266,16 +331,6 @@ function audit(configDir) {
     }
   }
 
-  // 4. statusLine pointing at a missing script
-  if (s.statusLine && s.statusLine.command) {
-    const sp = extractScriptPath(s.statusLine.command);
-    if (sp && !exists(sp)) {
-      add('error', 'statusline', 'statusLine script missing',
-        `statusLine command points to a missing file: ${sp}`,
-        'fix the path or remove statusLine', 'settings.json:statusLine');
-    }
-  }
-
   // 5. backups left inside the config dir (orphans / bloat)
   const backupsDir = path.join(configDir, 'backups');
   for (const ent of safeReaddir(backupsDir)) {
@@ -287,13 +342,13 @@ function audit(configDir) {
 
   // 6. local component (skill/agent/command) shadowing a plugin's
   for (const type of ['skills', 'agents', 'commands']) {
-    const local = componentNames(configDir, type);
-    if (!local.size) continue;
+    const localComp = componentNames(configDir, type);
+    if (!localComp.size) continue;
     for (const [key, arr] of Object.entries(installedPlugins)) {
       const ip = Array.isArray(arr) && arr[0] && arr[0].installPath;
       if (!ip) continue;
       const provided = componentNames(ip, type);
-      for (const name of local) {
+      for (const name of localComp) {
         if (provided.has(name)) {
           add('warning', 'duplicate', `local ${type.slice(0, -1)} shadows plugin: ${name}`,
             `a local ${type} "${name}" collides with one provided by ${key}`,
@@ -329,35 +384,6 @@ function audit(configDir) {
         }
       }
     }
-  }
-
-  // 8. malformed permission rules (silently ignored, so a guard may not apply)
-  const perms = asObj(s.permissions) || {};
-  for (const key of ['allow', 'deny', 'ask']) {
-    if (!Array.isArray(perms[key])) continue;
-    for (const rule of perms[key]) {
-      if (typeof rule !== 'string' || !PERMISSION_RULE.test(rule)) {
-        add('warning', 'permissions', `malformed permission rule: ${key}`,
-          `${JSON.stringify(rule)} is not a valid rule (expected ToolName or ToolName(pattern))`,
-          'fix the rule shape', `settings.json:permissions.${key}`);
-      }
-    }
-  }
-
-  // 8b. closed-set enums + statusLine type (a typo silently reverts to default / goes inert)
-  if (s.permissions && s.permissions.defaultMode !== undefined && !DEFAULT_MODES.has(s.permissions.defaultMode)) {
-    add('warning', 'settings', `invalid permissions.defaultMode: ${s.permissions.defaultMode}`,
-      'not a recognized mode; Claude Code silently falls back to default',
-      `use one of: ${[...DEFAULT_MODES].join(', ')}`, 'settings.json:permissions.defaultMode');
-  }
-  if (s.autoUpdatesChannel !== undefined && !UPDATE_CHANNELS.has(s.autoUpdatesChannel)) {
-    add('warning', 'settings', `invalid autoUpdatesChannel: ${s.autoUpdatesChannel}`,
-      'not a recognized channel', `use one of: ${[...UPDATE_CHANNELS].join(', ')}`, 'settings.json:autoUpdatesChannel');
-  }
-  if (s.statusLine && s.statusLine.type && s.statusLine.type !== 'command') {
-    add('warning', 'statusline', `statusLine type not 'command': ${s.statusLine.type}`,
-      'only "command" is supported, so the statusLine is inert',
-      'set statusLine.type to "command"', 'settings.json:statusLine.type');
   }
 
   // 9. local skill/agent/command frontmatter: missing required keys

@@ -2,6 +2,67 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [1.5.3] — 2026-06-21
+
+### Fixed
+- **The runtime payload had silently drifted from `SKILL.md`.** The always-on anchor
+  in `whippet-core.js` had dropped the `// whippet:` marker rule that `/whippet-ledger`
+  exists to harvest — the command collected a marker the discipline never told the
+  agent to plant — and left rung 4 ("native before a library") beside the security
+  line with no carve-out (the one place getting the ladder wrong means hand-rolling
+  crypto). Both restored, and `selftest.js` now asserts the load-bearing anchors stay
+  in the payload, so it can't drift unnoticed again.
+- **`/whippet-config` flagged a working relative hook/statusLine path as missing.** A
+  relative script path was resolved against the process cwd, not the config dir, so a
+  valid `"hooks/x.js"` read as broken — a false positive, the worst bug class for a
+  config doctor. Now resolved against the config dir (accepted if it exists either way).
+
+### Added
+- **`/whippet-config` audits `settings.local.json` content, not just its JSON validity.**
+  Its hooks, statusLine, permissions, enums, and plugin enablement override
+  `settings.json` and are now checked with the same lens (local wins per key, matching
+  Claude Code precedence) — the standard place per-machine drift accumulates. +8 scenarios.
+
+### Changed
+- **De-duped the review/simplify detection taxonomy.** The five shared categories were
+  hand-maintained twice; `/whippet-review` now points to `/whippet-simplify`'s list for
+  the shared lens and keeps only its review-only checks (marker-without-ceiling, missing
+  check, oversized batch, over-cut). One source, no drift — the bloat whippet audits for.
+- README: documented the commands' optional path/range argument, the drift hook's
+  `WHIPPET_DRIFT_THRESHOLD` knob and its path-only limit, and the `settings.local.json`
+  coverage — shipped-but-undisclosed behavior, now stated.
+
+### Docs
+- Backfilled the 1.5.0 / 1.5.1 / 1.5.2 entries below: the changelog had stopped at
+  1.4.0 while the badge read 1.5.2 and three tagged releases shipped undocumented.
+
+## [1.5.2] — 2026-06-20 — harden config-audit + non-blocking drift hooks
+
+- config-audit: guard valid-JSON-but-wrong-shape configs (`settings.json` null/array,
+  `enabledPlugins`/`hooks`/`permissions` non-object) that previously crashed the audit;
+  flag `installPath: null` instead of skipping it.
+- drift hooks: stream stdin instead of a blocking `readFileSync(0)`, so the Stop hook
+  can't hang on a fd that doesn't close promptly.
+- +13 tests (119 total): empty/malformed stdin, wrong-shape configs, Windows transcript path.
+
+## [1.5.1] — 2026-06-20 — config-audit version drift on local marketplaces
+
+- `/whippet-config` flags a plugin whose installed version is behind the version in its
+  directory-marketplace source's `marketplace.json`. Deterministic and local (no network)
+  — caught the hub's own whippet 1.4.0 vs 1.5.0 source. +2 tests (106 total).
+
+## [1.5.0] — 2026-06-20 — config doctor + code↔docs drift hook
+
+### Added
+- **`/whippet-config`** — a deterministic, read-only config-drift audit (~18 checks:
+  plugin enabled-vs-installed, cache/marketplace/hook/statusLine/MCP references, manifests,
+  duplicate components, permissions, closed-set enums, frontmatter, malformed JSON, stale
+  files). Covers the gaps the schema can't see.
+- **code↔docs drift hook** (PostToolUse + Stop) — one quiet reminder when code changes but
+  docs (`CLAUDE.md` / `README` / `docs/`) don't. Per-session state, off-switch, threshold-tunable.
+- 104 isolated tests, hardened by an adversarial review (10 issues, 5 high, all fixed) and
+  tried on a real hub (two false positives caught and fixed before shipping).
+
 ## [1.4.0] — 2026-06-19
 
 ### Fixed (adversarial review, round 4)

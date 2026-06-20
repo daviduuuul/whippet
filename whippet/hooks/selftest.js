@@ -21,6 +21,17 @@ const check = (name, cond) => {
 
 check('default mode is full', c.readMode() === 'full');
 check('payload reflects mode', c.buildPayload('full').includes('mode: full'));
+
+// The injected payload is the copy the agent actually sees every session; SKILL.md
+// is only the spec. Lock the load-bearing anchors so a trim can't silently drop a
+// guard the brand (and the commands) depend on. Semantic substrings, not the full
+// wording — legitimate rewording stays free.
+const payload = c.buildPayload('full');
+check('payload keeps the reuse rung', payload.includes('reuse beats rewrite'));
+check('payload keeps native-before-library', payload.includes('Native before a library'));
+check('payload keeps the security carve-out', payload.includes('never hand-rolled'));
+check('payload keeps the runnable-check guard', payload.includes('the one check that catches it breaking'));
+check('payload keeps the // whippet: marker rule', payload.includes('// whippet:'));
 c.setMode('ultra');
 check('setMode persists ultra', c.readMode() === 'ultra');
 check('reminder reflects mode', c.buildReminder('ultra').includes('ultra'));

@@ -56,6 +56,19 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
   (anything public leaks into training); report confidence intervals + per-category splits; never
   self-report numbers from a manifest.
 
+## README — keep it current (the shop window)
+
+The README is what drives installs, so keep it **accurate and convincing on every
+shippable change** — and honest above all: whippet sells honesty, so an overclaim
+there costs more than a flat line. Whenever the discipline, a command, the config
+doctor, or the drift hook changes, **update `README.md` in the same change** —
+capabilities, limits, the command table, env knobs (`WHIPPET_DRIFT_OFF`,
+`WHIPPET_DRIFT_THRESHOLD`). Hold two lines: **benchmark-true** (no measured "less
+code / less drift" edge the A/B doesn't show — the honest pitch is portability +
+0 deps + curated/tested commands) and **slop-free** (no rule-of-three, em-dash
+pile-ups, or promotional filler). The version badge is one of the four synced
+manifests — `npm run bump` moves it, never hand-edit.
+
 ## Scope discipline (this repo, of all repos)
 
 Whippet's value is a **narrow** scope: leanness where it pays — *the least that actually works,
@@ -63,8 +76,9 @@ and nothing left rotting in place*. Two fronts, one discipline:
 - **Lean code output + terse reporting** — the original product (skill + `/whippet-review` /
   `/whippet-simplify` / `/whippet-ledger`).
 - **Lean setup** — `/whippet-config` audits the Claude Code config for drift (dead plugin/hook/MCP
-  references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files), so
-  the setup stays as lean and un-rotted as the code. Detect-only; deterministic; no `$schema` work
+  references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files —
+  across `settings.json` and `settings.local.json`), so the setup stays as lean and un-rotted as the
+  code. Detect-only; deterministic; no `$schema` work
   it already does — it covers the *gaps* the schema can't (referents and runtime).
 
 Still **out of scope**: planning, orchestration, general context-engineering — anything that

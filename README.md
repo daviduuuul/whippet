@@ -12,7 +12,7 @@
 <br>
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.5.2-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.5.3-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>
@@ -70,6 +70,8 @@ Dial it with `/whippet lite` · `/whippet full` (default) · `/whippet ultra`; p
 | **`/whippet-simplify`** | Applies the review — deletes dead code, swaps a dependency for the platform, tightens the rest — and refuses to cut a validation, a guard, or your one check. |
 | **`/whippet-ledger`** | Collects every deferred decision with the condition that should reopen it, so a shortcut never disappears into the source. |
 
+All three take an optional path or commit range and otherwise default to the working diff.
+
 ## Lean config — `/whippet-config`
 
 Your setup drifts: a plugin gets disabled but is still documented, a hook points at a moved script, a local marketplace breaks when you rename a folder, an installed plugin falls behind its source, backups pile up. `/whippet-config` reads the actual config files and reports the drift — **deterministic, read-only, no guessing**.
@@ -84,11 +86,11 @@ INFO — cleanup candidates
   3× backup inside config dir — move them out or delete
 ```
 
-It covers the gaps the JSON schema can't: enabled-vs-installed plugins, broken hook / MCP / statusLine references, fragile local marketplaces, version drift, duplicate components, malformed JSON, orphaned files. It reports the fix; you decide.
+It covers the gaps the JSON schema can't, across both `settings.json` and `settings.local.json`: enabled-vs-installed plugins, broken hook / MCP / statusLine references, fragile local marketplaces, version drift, duplicate components, malformed JSON, orphaned files. It reports the fix; you decide.
 
 ## Code↔docs drift — the hook
 
-Change code but not the docs and they rot apart silently. A turn-end hook notices: edit several code files in a session without touching `CLAUDE.md` / `README` / `docs/`, and it surfaces **one** quiet reminder. Per-session, low-noise, off with `WHIPPET_DRIFT_OFF=1`.
+Change code but not the docs and they rot apart silently. A turn-end hook notices: edit several code files in a session without touching `CLAUDE.md` / `README` / `docs/`, and it surfaces **one** quiet reminder. It's path-only — it sees that *some* docs file changed, not whether the docs actually cover the code. Per-session, low-noise; tune the code-edit count that trips it with `WHIPPET_DRIFT_THRESHOLD` (default 3), turn it off with `WHIPPET_DRIFT_OFF=1`.
 
 ## Install
 
