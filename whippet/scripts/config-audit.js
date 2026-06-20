@@ -163,6 +163,28 @@ function audit(configDir) {
     }
   }
 
+  // 2b. directory-source marketplace: installed version behind the source's marketplace.json
+  for (const [name, def] of Object.entries(mk)) {
+    const src = def && def.source;
+    const kind = src && typeof src === 'object' ? src.source : src;
+    if (kind !== 'directory') continue;
+    const p = src && typeof src === 'object' ? src.path : def.path;
+    if (!p || !exists(p)) continue;
+    const srcMk = readJSON(path.join(p, '.claude-plugin', 'marketplace.json'));
+    if (!srcMk.ok || !srcMk.data || !Array.isArray(srcMk.data.plugins)) continue;
+    for (const pl of srcMk.data.plugins) {
+      if (!pl || !pl.name || !pl.version) continue;
+      const key = `${pl.name}@${name}`;
+      const inst = installedPlugins[key];
+      const iv = Array.isArray(inst) && inst[0] && inst[0].version;
+      if (iv && iv !== pl.version) {
+        add('warning', 'marketplace', `plugin out of date: ${key}`,
+          `installed ${iv}, but the local source is ${pl.version}`,
+          'run /plugin update to sync the cache', key);
+      }
+    }
+  }
+
   // 3. hooks: unknown event name, bad matcher, missing command, missing script
   const hooks = s.hooks || {};
   for (const [event, groups] of Object.entries(hooks)) {

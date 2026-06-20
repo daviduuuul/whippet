@@ -389,6 +389,20 @@ ck('prompt hook type -> clean (no missing-command)',
   ck('CRLF+trailing-space frontmatter parsed', count(audit(cfg), 'frontmatter') === 0);
 }
 
+/* ---------------- directory-source version drift ---------------- */
+function mkWithSourceVersion(srcVer, instVer) {
+  const root = tmp(); const cfg = path.join(root, '.claude'); fs.mkdirSync(cfg, { recursive: true });
+  const mkDir = path.join(root, 'mk'); fs.mkdirSync(path.join(mkDir, '.claude-plugin'), { recursive: true });
+  writeJSON(path.join(mkDir, '.claude-plugin', 'marketplace.json'), { plugins: [{ name: 'foo', source: './foo', version: srcVer }] });
+  writeJSON(path.join(cfg, 'settings.json'), { extraKnownMarketplaces: { mymk: { source: { source: 'directory', path: mkDir } } } });
+  writeJSON(path.join(cfg, 'plugins', 'installed_plugins.json'), { plugins: { 'foo@mymk': [{ installPath: mkDir, version: instVer }] } });
+  return audit(cfg);
+}
+ck('version drift: installed behind source -> warning',
+  hasFinding(mkWithSourceVersion('2.0.0', '1.0.0'), 'marketplace', 'plugin out of date: foo@mymk'));
+ck('version match -> no out-of-date finding',
+  !hasFinding(mkWithSourceVersion('2.0.0', '2.0.0'), 'marketplace', 'plugin out of date'));
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);
