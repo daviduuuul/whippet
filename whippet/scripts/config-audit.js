@@ -94,19 +94,30 @@ function audit(configDir) {
   const findings = [];
   const add = (severity, category, title, detail, fix, evidence) =>
     findings.push({ severity, category, title, detail, fix, evidence });
+  // a plain object, else null — guards against valid-JSON-but-wrong-shape (null, array, scalar)
+  const asObj = (x) => (x && typeof x === 'object' && !Array.isArray(x)) ? x : null;
 
   const settings = readJSON(path.join(configDir, 'settings.json'));
   if (!settings.ok) {
     add('error', 'config', `settings.json ${settings.error}`,
       `could not read ${path.join(configDir, 'settings.json')}`,
       'restore or fix settings.json', 'settings.json');
+  } else if (!asObj(settings.data)) {
+    add('error', 'config', 'settings.json is not a JSON object',
+      'valid JSON but the top level is null / an array / a scalar',
+      'make settings.json a { } object', 'settings.json');
   }
-  const s = settings.ok ? settings.data : {};
+  const s = asObj(settings.data) || {};
 
   const installed = readJSON(path.join(configDir, 'plugins', 'installed_plugins.json'));
-  const installedOk = !!(installed.ok && installed.data && installed.data.plugins);
+  const installedOk = !!(installed.ok && asObj(installed.data) && asObj(installed.data.plugins));
   const installedPlugins = installedOk ? installed.data.plugins : {};
-  const enabled = s.enabledPlugins || {};
+  if (s.enabledPlugins != null && !asObj(s.enabledPlugins)) {
+    add('error', 'config', 'enabledPlugins is not an object',
+      'settings.json:enabledPlugins must map "name@marketplace" to true/false',
+      'fix the enabledPlugins shape', 'settings.json:enabledPlugins');
+  }
+  const enabled = asObj(s.enabledPlugins) || {};
   const anyEnabled = Object.values(enabled).some(v => v === true);
 
   // If the inventory is unreadable, say so once — don't flag every plugin.
@@ -128,10 +139,10 @@ function audit(configDir) {
         continue;
       }
       const ip = inst[0].installPath;
-      if (ip && !exists(ip)) {
+      if (!ip || !exists(ip)) {
         add('error', 'plugins', `cache path missing: ${key}`,
-          `installPath does not exist on disk: ${ip}`,
-          'reinstall the plugin to repair the cache', ip);
+          `installPath is missing or not on disk: ${ip}`,
+          'reinstall the plugin to repair the cache', String(ip));
       }
     }
   }
@@ -145,7 +156,7 @@ function audit(configDir) {
   }
 
   // 2. local directory-source marketplaces are fragile / can be broken
-  const mk = s.extraKnownMarketplaces || {};
+  const mk = asObj(s.extraKnownMarketplaces) || {};
   for (const [name, def] of Object.entries(mk)) {
     const src = def && def.source;
     // accept both nested { source: { source:'directory', path } } and flat { source:'directory', path }
@@ -186,7 +197,7 @@ function audit(configDir) {
   }
 
   // 3. hooks: unknown event name, bad matcher, missing command, missing script
-  const hooks = s.hooks || {};
+  const hooks = asObj(s.hooks) || {};
   for (const [event, groups] of Object.entries(hooks)) {
     if (!HOOK_EVENTS.has(event)) {
       add('error', 'hooks', `unknown hook event: ${event}`,
@@ -321,7 +332,7 @@ function audit(configDir) {
   }
 
   // 8. malformed permission rules (silently ignored, so a guard may not apply)
-  const perms = s.permissions || {};
+  const perms = asObj(s.permissions) || {};
   for (const key of ['allow', 'deny', 'ask']) {
     if (!Array.isArray(perms[key])) continue;
     for (const rule of perms[key]) {

@@ -143,6 +143,36 @@ function withReal(cfg, rel) { const p = path.join(cfg, rel); fs.mkdirSync(path.d
   ck('C6 malformed hooks -> no crash / no finding', !threw && count(r, 'hooks') === 0);
 }
 
+/* ---------------- R. robustness: valid-JSON-but-wrong-shape (must not crash) ---------------- */
+{ // settings.json = null
+  const root = tmp(); const cfg = path.join(root, '.claude'); fs.mkdirSync(cfg, { recursive: true });
+  fs.writeFileSync(path.join(cfg, 'settings.json'), 'null');
+  let threw = false, r; try { r = audit(cfg); } catch { threw = true; }
+  ck('R1 settings.json null -> finding, no crash', !threw && hasFinding(r, 'config', 'settings.json is not a JSON object'));
+}
+{ // settings.json = array
+  const root = tmp(); const cfg = path.join(root, '.claude'); fs.mkdirSync(cfg, { recursive: true });
+  fs.writeFileSync(path.join(cfg, 'settings.json'), '[1,2]');
+  let threw = false, r; try { r = audit(cfg); } catch { threw = true; }
+  ck('R2 settings.json array -> finding, no crash', !threw && hasFinding(r, 'config', 'settings.json is not a JSON object'));
+}
+{ // enabledPlugins: true (Object.values would throw)
+  let threw = false, r; try { r = run({ settings: { enabledPlugins: true } }); } catch { threw = true; }
+  ck('R3 enabledPlugins:true -> finding, no crash', !threw && hasFinding(r, 'config', 'enabledPlugins is not an object'));
+}
+{ // hooks: true (Object.entries would throw)
+  let threw = false; try { run({ settings: { hooks: true } }); } catch { threw = true; }
+  ck('R4 hooks:true -> no crash', !threw);
+}
+{ // permissions: true
+  let threw = false; try { run({ settings: { permissions: true } }); } catch { threw = true; }
+  ck('R5 permissions:true -> no crash', !threw);
+}
+{ // installPath: null must be flagged, not silently skipped
+  const r = run({ settings: { enabledPlugins: { 'p@m': true } }, installed: { plugins: { 'p@m': [{ installPath: null }] } } });
+  ck('R6 installPath null -> cache path missing', hasFinding(r, 'plugins', 'cache path missing: p@m'));
+}
+
 /* ---------------- H. hook validity (event / matcher / command) ---------------- */
 { // H1 unknown event name -> error
   const r = run({ settings: { hooks: { BadEvent: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } } });

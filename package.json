@@ -1,6 +1,6 @@
 {
   "name": "whippet",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "description": "Lean-code discipline plugin for Claude Code",
   "license": "MIT",

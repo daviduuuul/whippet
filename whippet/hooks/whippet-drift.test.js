@@ -2,6 +2,8 @@
 // Scenario suite for the drift core: classification, accumulation, the
 // one-reminder-per-wave decision, the doc-reset re-arming, and payload parsing.
 const { isDoc, isCode, recordEdit, evaluateDrift, statePath, editedFiles } = require('./whippet-drift-core');
+const { spawnSync } = require('child_process');
+const path = require('path');
 
 let pass = 0, fail = 0; const fails = [];
 function ck(name, cond) { if (cond) pass++; else { fail++; fails.push(name); } console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); }
@@ -58,6 +60,7 @@ ck('garbage state -> no crash', evaluateDrift(null, { threshold: 3 }).notify ===
   ck('statePath per-session differs', a !== b && a.includes('aaa') && b.includes('bbb'));
   ck('statePath falls back to transcript basename', statePath({ transcript_path: '/p/proj/zzz.jsonl' }).includes('zzz'));
   ck('statePath survives no input', typeof statePath({}) === 'string');
+  ck('statePath handles a Windows transcript path', statePath({ transcript_path: 'C:\\projects\\foo\\abc.jsonl', session_id: 'abc' }).includes('abc'));
 }
 
 // editedFiles parses Edit/Write/MultiEdit payloads
@@ -65,6 +68,16 @@ ck('editedFiles Edit/Write top-level', editedFiles({ file_path: 'a.ts' }).length
 ck('editedFiles MultiEdit edits[]', editedFiles({ edits: [{ file_path: 'a.ts' }, { file_path: 'b.ts' }] }).length === 2);
 ck('editedFiles both shapes', editedFiles({ file_path: 'a.ts', edits: [{ file_path: 'b.ts' }] }).length === 2);
 ck('editedFiles empty/garbage', editedFiles({}).length === 0 && editedFiles(null).length === 0);
+
+// integration: the hooks must survive empty/closed AND malformed stdin without hanging
+// or crashing (today's silent-failure lesson). spawnSync(input:'') closes stdin at once.
+for (const hook of ['whippet-drift-track.js', 'whippet-drift-check.js']) {
+  const empty = spawnSync(process.execPath, [path.join(__dirname, hook)], { input: '', timeout: 5000, encoding: 'utf8' });
+  ck(`${hook}: empty stdin -> exit 0, no hang`, empty.status === 0 && empty.signal === null);
+  ck(`${hook}: empty stdin -> no spurious output`, (empty.stdout || '') === '');
+  const bad = spawnSync(process.execPath, [path.join(__dirname, hook)], { input: 'not json {{{', timeout: 5000, encoding: 'utf8' });
+  ck(`${hook}: malformed stdin -> exit 0`, bad.status === 0 && bad.signal === null);
+}
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);
 if (fail) { console.log('FAILED: ' + fails.join(' | ')); process.exit(1); }

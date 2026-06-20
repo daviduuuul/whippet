@@ -1,6 +1,7 @@
 'use strict';
 // Stop: if code changed this session but no docs did, surface ONE yellow advisory.
-// Non-blocking (systemMessage + exit 0), never throws.
+// Non-blocking (systemMessage + exit 0), never throws. Streams stdin so the Stop
+// hook never blocks waiting on a fd 0 that may not close promptly.
 const fs = require('fs');
 const { evaluateDrift, statePath, writeState } = require('./whippet-drift-core');
 
@@ -11,16 +12,21 @@ function threshold() {
   return Number.isInteger(n) && n >= 1 ? n : 3;
 }
 
-try {
-  if (!process.env.WHIPPET_DRIFT_OFF) {
-    let input = {};
-    try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch { /* no stdin */ }
-    const sp = statePath(input);
-    let state = {};
-    try { state = JSON.parse(fs.readFileSync(sp, 'utf8')); } catch { /* nothing tracked */ }
-    const res = evaluateDrift(state, { threshold: threshold() });
-    writeState(sp, res.state);
-    if (res.notify) process.stdout.write(JSON.stringify({ systemMessage: res.message }));
-  }
-} catch { /* never break a session */ }
-process.exit(0);
+let rawIn = '';
+process.stdin.on('data', (d) => { rawIn += d; });
+process.stdin.on('error', () => process.exit(0));
+process.stdin.on('end', () => {
+  try {
+    if (!process.env.WHIPPET_DRIFT_OFF) {
+      let input = {};
+      try { input = JSON.parse(rawIn || '{}'); } catch { /* no/bad stdin */ }
+      const sp = statePath(input);
+      let state = {};
+      try { state = JSON.parse(fs.readFileSync(sp, 'utf8')); } catch { /* nothing tracked */ }
+      const res = evaluateDrift(state, { threshold: threshold() });
+      writeState(sp, res.state);
+      if (res.notify) process.stdout.write(JSON.stringify({ systemMessage: res.message }));
+    }
+  } catch { /* never break a session */ }
+  process.exit(0);
+});
