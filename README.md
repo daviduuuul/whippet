@@ -19,6 +19,16 @@
 
 ---
 
+## What it does
+
+Three things, one discipline — *keep it lean, keep it honest, don't let it rot*:
+
+- **Lean code** — the always-on YAGNI discipline, plus `/whippet-review`, `/whippet-simplify`, and `/whippet-ledger`.
+- **Lean config** — `/whippet-config` audits your Claude Code setup for drift: dead plugin / hook / MCP / statusLine references, fragile local marketplaces, out-of-date plugins, malformed JSON, orphaned files. Deterministic, read-only.
+- **No silent rot** — a turn-end hook flags when you change code but not the docs (`CLAUDE.md` / `README` / `docs/`).
+
+Most of this README is about the first one — it's the part with a number, and the number is honest.
+
 ## The problem
 
 Coding agents are fast and a little greedy. Ask for one thing and you get three:

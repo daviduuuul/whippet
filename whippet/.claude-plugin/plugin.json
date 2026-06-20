@@ -1,7 +1,7 @@
 {
   "name": "whippet",
   "version": "1.5.1",
-  "description": "Write code the lean way — the least code that actually works. A lazy-senior YAGNI discipline plus terse, concrete reporting.",
+  "description": "Three lean tools for Claude Code: a YAGNI code discipline (always-on + review/simplify/ledger), a deterministic config-drift auditor (/whippet-config), and a code↔docs drift hook.",
   "author": { "name": "daviduuuul", "url": "https://github.com/daviduuuul" },
   "homepage": "https://github.com/daviduuuul/whippet",
   "repository": "https://github.com/daviduuuul/whippet",
