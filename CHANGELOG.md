@@ -13,8 +13,18 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   whose correct spelling is absent, naming the intended key. Conservative by construction:
   an unknown key far from every known setting stays silent (it may be a newer setting we
   don't list), so there are no false positives — the real hub config flags zero.
+- **deps-audit native-equivalent table expanded (verified against a 106-case eval).** Added 7
+  single-purpose swaps — `lodash.clonedeep`/`fast-copy` → `structuredClone`, `isarray` →
+  `Array.isArray`, `es6-promise` → `Promise`, `p-defer` → `Promise.withResolvers`, `minimist` →
+  `util.parseArgs`, `querystring` → `node:querystring`/`URLSearchParams` — each fact-checked against
+  Node release history and gated at the major where the native is non-experimental. Lifts the
+  native-check recall 81.7% → 85.8% on the eval corpus with no new false-positives.
 
 ### Fixed
+- **deps-audit no longer flags `node-fetch`/`cross-fetch` below Node 21.** Global `fetch` is
+  experimental on Node 18–20 and stable only from 21, so the previous floor of 18 produced a false
+  “native equivalent available” finding on Node 18/20 projects. Floor corrected to 21, lifting the
+  eval precision 92.0% → 96.6%.
 - **deps-audit reads a full-semver `engines.node` floor correctly.** A floor like
   `">=20.10.0"` was parsed as `min(20, 10, 0) = 0`, so the engine gate treated the
   project as running an ancient Node and silenced every native-equivalent finding.
