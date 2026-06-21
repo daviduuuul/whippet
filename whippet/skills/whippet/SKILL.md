@@ -110,8 +110,11 @@ Reports, analyses, or walkthroughs you were explicitly asked for: give in full.
 
 ## Companion
 
-- `/whippet-review` — diagnose the diff (removable code, unjustified deps, markers
-  missing a limit).
-- `/whippet-simplify` — apply the safe cuts, never touching a guard.
-- `/whippet-ledger` — collect every `whippet:` marker with its trigger; flag any
-  that set none.
+Whippet mostly runs on its own — nothing to invoke:
+
+- **Config drift** surfaces at session start; **dependency bloat** (a native-equivalent
+  or duplicate package) surfaces when you edit `package.json`; **code↔docs drift** at the
+  end of a turn. Each is a quiet, non-blocking advisory.
+- `/whippet-config` — the one command: a full, on-demand audit of your Claude setup.
+- `whippet check` — an optional deterministic pre-commit/CI gate (deps, bare `whippet:`
+  markers, diff budget) for repos that want the discipline enforced.
