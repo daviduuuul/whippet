@@ -92,7 +92,13 @@ for (const cell of matrix()) {
     const candDir = path.join(stage, `${cell.model}__${cell.fixture}__${cell.arm}__${i}`);
     copyDir(path.join(fxDir, 'before'), candDir);
     const prompt = `${ARM_PREFIX[cell.arm]}\n\n${task}\n\nEdit the files under ${candDir} to solve it. Do not explain.`;
-    try { execFileSync('claude', ['-p', '--model', cell.model], { input: prompt, cwd: candDir, stdio: ['pipe', 'ignore', 'ignore'], timeout: 180000 }); }
+    // The candidate agent must edit files in its own throwaway .staging/ dir. That
+    // needs headless permission. OPT-IN ONLY: set WHIPPET_SWEEP_YOLO=1 to add
+    // --dangerously-skip-permissions (you are explicitly authorizing autonomous agents,
+    // sandboxed to the isolated candidate dir). Default: no bypass (agents would prompt).
+    const cArgs = ['-p', '--model', cell.model];
+    if (process.env.WHIPPET_SWEEP_YOLO === '1') cArgs.push('--dangerously-skip-permissions');
+    try { execFileSync('claude', cArgs, { input: prompt, cwd: candDir, stdio: ['pipe', 'ignore', 'ignore'], timeout: 180000 }); }
     catch { /* a failed generation still gets scored (likely correct:false) */ }
     try { execFileSync(process.execPath, [path.join(root, 'scripts/bench-score.js'), cell.fixture, cell.arm, candDir, '--model', cell.model, '--save'], { stdio: 'inherit' }); }
     catch { /* scoring error: skip this run */ }
