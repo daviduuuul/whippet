@@ -5,7 +5,7 @@
 # Whippet
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-2.0.1-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-2.1.0-4c8bf5?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 
 </div>

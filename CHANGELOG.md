@@ -4,6 +4,8 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-21
+
 ### Added
 - **config-audit flags a typo'd top-level settings key.** A misspelled structural key in
   `settings.json` / `settings.local.json` (e.g. `enabledPlugin` for `enabledPlugins`,
