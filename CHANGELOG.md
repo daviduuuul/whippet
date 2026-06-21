@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **Hook state file: `session_id` is sanitized before it becomes a path.** `sessionStatePath`
+  interpolated `session_id` straight into the state-file name, so a value with a path separator
+  (`/`, `\`, `..`) could write the file outside the config dir and permanently break per-session
+  dedup (the advisory re-fired on every edit). Claude Code emits separator-free UUIDs so it
+  didn't bite in practice, but a hook should never let an input field escape its dir — the id is
+  now reduced to a basename-safe token.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance

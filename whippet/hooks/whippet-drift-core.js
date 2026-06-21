@@ -67,8 +67,10 @@ function evaluateDrift(state, { threshold = 3 } = {}) {
 function sessionStatePath(input, kind = 'drift') {
   const tp = input && input.transcript_path;
   const dir = tp ? path.dirname(String(tp)) : (process.env.CLAUDE_CONFIG_DIR || process.cwd());
-  const sid = (input && input.session_id)
+  const raw = (input && input.session_id)
     || (tp ? path.basename(String(tp)).replace(/\.[^.]+$/, '') : 'session');
+  // sid becomes a filename — strip anything that could escape the dir (/, \, ..)
+  const sid = String(raw).replace(/[^\w.-]/g, '_') || 'session';
   return path.join(dir, `.whippet-${kind}-${sid}.json`);
 }
 function statePath(input) { return sessionStatePath(input, 'drift'); }
