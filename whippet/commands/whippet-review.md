@@ -13,7 +13,8 @@ given, else the working diff.
    dependency, premature abstraction, needless indirection), **diagnose-only** here,
    naming the existing symbol when something is reinvented. Plus the checks that are
    review's own:
-   - **`whippet:` without a ceiling:** a shortcut comment naming no upgrade path.
+   - **`whippet:` without a ceiling:** run `node "${CLAUDE_PLUGIN_ROOT}/scripts/marker.js"
+     <changed files> --json` and flag every `bare:true` — a shortcut naming no `until:` upgrade path.
    - **Missing check:** non-trivial logic with no runnable check left behind.
    - **Oversized batch:** a hunk mixing unrelated changes, or a diff too large to
      review in one pass — flag the split (one logical, revertible change per
