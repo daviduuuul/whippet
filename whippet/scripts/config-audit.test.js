@@ -393,6 +393,12 @@ ck('C7 ${CLAUDE_PLUGIN_ROOT} hook -> no finding',
 // #1 dotted / glob / mcp permission rules are valid
 ck('M6 dotted/glob/mcp rules -> clean',
   count(run({ settings: { permissions: { allow: ['vendor.tool', 'Bash(*.sh)', 'mcp__a__b'] } } }), 'permissions') === 0);
+// mcp server-wildcard rules are documented & valid (mcp__server__*, mcp__server__get_*)
+ck('M7 mcp server-wildcard rules -> clean',
+  count(run({ settings: { permissions: { allow: ['mcp__memory__*', 'mcp__github__get_*'] } } }), 'permissions') === 0);
+// but a bare unanchored mcp__* (which Claude Code itself rejects) stays flagged
+ck('M8 bare mcp__* still flagged',
+  hasFinding(run({ settings: { permissions: { allow: ['mcp__*'] } } }), 'permissions', 'malformed permission rule: allow'));
 // #2 flat-shape marketplace must still be checked
 ck('B6 flat marketplace path missing -> error',
   hasFinding(run({ settings: { extraKnownMarketplaces: { flat: { source: 'directory', path: path.join(os.tmpdir(), 'no-flat-mk-xyz') } } } }), 'marketplace', 'local marketplace path missing: flat'));

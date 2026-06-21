@@ -98,8 +98,10 @@ function frontmatterKeys(filePath) {
 }
 
 // A permission rule is `ToolName` optionally followed by `(pattern)`. Tool names
-// can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool).
-const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\(.*\))?$/;
+// can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool). MCP
+// rules also take a documented trailing wildcard (mcp__server__*, mcp__server__get_*);
+// a bare unanchored mcp__* stays rejected, matching Claude Code's own behavior.
+const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\(.*\))?$|^mcp__[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]*\*$/;
 
 function audit(configDir) {
   const findings = [];
