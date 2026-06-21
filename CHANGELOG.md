@@ -4,6 +4,14 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+### Fixed
+- **deps-audit: two false positives found by a 24-repo real-world sweep.** (1) Dropped the
+  `bundler` duplicate group — `vite` is built on `rollup`/`esbuild`, so they compose rather than
+  compete, and flagging them together was wrong (hit vue, rollup, mocha, vite). (2) When
+  `engines.node` is unknown, only suggest natives stable since Node <= 18; a recent swap
+  (`parseArgs`/`withResolvers`/global `fetch`) is now suppressed instead of guessed at (was
+  mis-flagging `minimist` on axios). Validated against the real package.json of 24 public repos.
+
 ## [2.1.0] - 2026-06-21
 
 ### Added

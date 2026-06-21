@@ -39,9 +39,13 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { dotenv: '^16' }, engines: { node: '>=16' } }, files: { 'index.js': "require('dotenv')" } });
   ck('N2 dotenv on Node 16 -> no native finding', count(r, 'native') === 0);
 }
-{ // N3 unknown engine -> flagged with a verify note
+{ // N3 unknown engine + LOW-floor swap -> flagged with a verify note (universally safe native)
+  const r = run({ pkg: { dependencies: { rimraf: '^5' } }, files: { 'index.js': "require('rimraf')" } });
+  ck('N3 rimraf unknown engine -> native finding', hasFinding(r, 'native', 'native equivalent available: rimraf'));
+}
+{ // N3b unknown engine + RECENT swap (sinceNode>18) -> suppressed (cannot confirm the Node floor)
   const r = run({ pkg: { dependencies: { 'node-fetch': '^3' } }, files: { 'index.js': "require('node-fetch')" } });
-  ck('N3 node-fetch unknown engine -> native finding', hasFinding(r, 'native', 'native equivalent available: node-fetch'));
+  ck('N3b node-fetch unknown engine -> suppressed', count(r, 'native') === 0);
 }
 { // N4 full-semver engine floor (major.minor.patch) must keep the major, not collapse to 0 -> still flagged
   const r = run({ pkg: { dependencies: { uuid: '^9' }, engines: { node: '>=20.10.0' } }, files: { 'index.js': "require('uuid')" } });
@@ -155,6 +159,10 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
 { // D4 new member in an existing group: undici joins http client
   const r = run({ pkg: { dependencies: { undici: '^6', axios: '^1' } }, files: { 'index.js': "require('undici'); require('axios')" } });
   ck('D4 undici+axios -> http client duplicate', hasFinding(r, 'duplicate', 'multiple http client libraries'));
+}
+{ // D5 bundlers COMPOSE (vite is built on rollup+esbuild) -> never a duplicate
+  const r = run({ pkg: { devDependencies: { vite: '^5', rollup: '^4', esbuild: '^0.20' } }, files: { 'index.js': 'const x = 1' } });
+  ck('D5 vite+rollup+esbuild -> no duplicate (compositional)', count(r, 'duplicate') === 0);
 }
 
 /* ---------------- robustness ---------------- */
