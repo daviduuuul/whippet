@@ -1,6 +1,6 @@
 {
   "name": "whippet",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Autonomous lean discipline for Claude Code: an always-on YAGNI code discipline plus quiet hooks that flag dependency bloat (on package.json edits), config drift (at session start), and code↔docs drift. One command, /whippet-config, for the full setup audit on demand; `whippet check` is an optional pre-commit/CI gate.",
   "author": { "name": "daviduuuul", "url": "https://github.com/daviduuuul" },
   "homepage": "https://github.com/daviduuuul/whippet",
