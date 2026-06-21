@@ -98,14 +98,22 @@ function frontmatterKeys(filePath) {
 }
 
 // Compare dotted version strings numerically (1.10 > 1.9, which a string compare
-// gets backwards). Missing / non-numeric parts count as 0. Returns <0 / 0 / >0.
+// gets backwards). Tolerates a leading "v" and SemVer prerelease tags: a release
+// outranks its prerelease (1.2.0 > 1.2.0-beta). Missing/non-numeric parts count as
+// 0. Returns <0 / 0 / >0.
 function cmpSemver(a, b) {
-  const pa = String(a).split('.'), pb = String(b).split('.');
+  const norm = (v) => String(v).trim().replace(/^v/i, '').split('-');
+  const [ca, ...preA] = norm(a), [cb, ...preB] = norm(b);
+  const pa = ca.split('.'), pb = cb.split('.');
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
     const d = (parseInt(pa[i], 10) || 0) - (parseInt(pb[i], 10) || 0);
     if (d) return d;
   }
-  return 0;
+  const ra = preA.join('-'), rb = preB.join('-'); // prerelease tag, '' for a release
+  if (ra === rb) return 0;
+  if (!ra) return 1;          // a is a release, b is a prerelease -> a is newer
+  if (!rb) return -1;         // a is a prerelease, b is a release -> a is older
+  return ra < rb ? -1 : 1;    // both prerelease: lexical (conservative, good enough)
 }
 
 // A permission rule is `ToolName` optionally followed by `(pattern)`. Tool names
@@ -351,6 +359,11 @@ function audit(configDir) {
     if (['http', 'streamable-http', 'sse', 'ws'].includes(type) && !def.url) {
       add('error', 'mcp', `MCP server missing url: ${name}`,
         `a ${type} MCP server has no url`, 'add the server url', `mcpServers.${name}.url`);
+    }
+    if (!type) {
+      add('error', 'mcp', `MCP server has no transport: ${name}`,
+        'no command (stdio), url (http/sse), or type — nothing to launch or connect to',
+        'add a command, a url, or a type', `mcpServers.${name}`);
     }
   }
 
