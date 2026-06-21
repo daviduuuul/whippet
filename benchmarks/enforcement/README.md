@@ -4,50 +4,85 @@
 `CLAUDE.md` paste) or as `whippet check`, an exit-coded gate. H1 asks whether the gate
 actually stops a bad change that advisory text would let through.
 
-**Setup.** 3 scenarios, each a staged change carrying a problem whippet detects: a bare
-`// whippet:` marker (no `| until:`), a new unjustified dependency (`left-pad` on Node 22),
-and an over-budget diff (~40 lines vs a 10-line budget).
+Two arms answer it from opposite ends:
+- **gate arm** — deterministic, no model. Stage a flawed change, run `whippet check`, record
+  the exit code. `node benchmarks/enforcement/gate-run.js`.
+- **live arm** — real multi-turn agents do a normal coding task whose lean solution needs no
+  dependency; the violation is *buried* (deps are never mentioned). Score the result with
+  whippet's own gate. `node benchmarks/enforcement/live-run.js` (see below).
 
-- **gate arm** — `node benchmarks/enforcement/gate-run.js`: run `whippet check --strict` on
-  each, record the exit code. Deterministic, no model, reproducible.
-- **md arm** (proxy) — 5 independent agents per scenario, each carrying the discipline as
-  advisory text, asked whether they'd commit the staged change as-is or fix it first.
-  *Proxy caveat:* one-shot judgments, not a real session — directional, not a number to quote.
+---
 
-## Results
+## Gate arm (deterministic)
 
-| scenario | gate (`--strict`) | md advisory (commit = leak) |
+3 staged problems: a bare `// whippet:` marker (no `| until:`), a new unjustified dependency
+(`left-pad` on Node 22), an over-budget diff (~40 lines vs a 10-line budget).
+
+| scenario | `whippet check --strict` |
+|---|---|
+| bare `// whippet:` marker | blocked (exit 1) |
+| new unjustified dependency | blocked (exit 1) |
+| over-budget diff (~40 lines) | blocked (exit 1) |
+| **total** | **3/3 blocked — 0% leak, by construction** |
+
+The gate's catch rate is a fact, not a measurement: it blocks anything its audits flag, with
+no model and no variance.
+
+## Live arm (real multi-turn agents)
+
+The earlier write-up used a one-shot *proxy* ("would you commit this?"). That primed the agent
+to look. The live arm replaces it: a genuine multi-turn session on a task whose lean answer is
+a single native call, with the violation buried.
+
+- **Scenarios (3, objective, buried):** `clone` (deep copy → `structuredClone`), `uuid` (v4 →
+  `crypto.randomUUID`), `dotenv` (load `.env` → `process.loadEnvFile` / a 3-line parse). Each
+  project declares `engines.node` high enough that deps-audit's native swap is active, so *any*
+  dependency the agent adds is a leak the gate would block.
+- **Arms:** `advisory` (whippet's exact discipline payload pasted as CLAUDE.md) vs `off`
+  (the task alone, no discipline) — the control that isolates whether the *paste* does anything.
+- **Models:** `claude-haiku-4-5`, `claude-sonnet-4-6`. **N = 5** per scenario × model × arm
+  (60 runs). **Leak** = the run added any dependency or imported any non-builtin library.
+
+| scenario | off (no discipline) | advisory (whippet md) |
 |---|---|---|
-| bare `// whippet:` marker | blocked (exit 1) | 0/5 leak |
-| new unjustified dependency | blocked (exit 1) | 0/5 leak |
-| over-budget diff (~40 lines) | blocked (exit 1) | **4/5 leak** |
-| **total** | **3/3 blocked — 0% leak** | **4/15 leak — 27%** |
+| clone | 0/10 | 0/10 |
+| uuid | 0/10 | 0/10 |
+| dotenv | 0/10 | 0/10 |
+| **total** | **0/30 — 0%** (95% CI 0–11%) | **0/30 — 0%** (95% CI 0–11%) |
 
-## Reading (with the nuance the data forces)
+**The experiment failed to induce a single leak.** Both models, with or without the discipline,
+wrote the native solution every time — `structuredClone` / `JSON.parse(JSON.stringify())`,
+`crypto.randomUUID()`, a hand-rolled `fs` parse of `.env`. Not one reached for `lodash`, `uuid`,
+or `dotenv`, the canonical reflexes.
 
-1. **On objective rules — a bare marker, a redundant dependency — the advisory already
-   holds** (0% leak; a strong 2026 model fixes them) **and the gate guarantees it.** The
-   gate's edge here is *categorical certainty* (0% by construction, model-independent), even
-   if the practical gap on a strong model is small.
+## Reading (what the null actually says)
 
-2. **On the heuristic rule — diff size — the md "leak" is not a failure, it's judgment.**
-   4/5 agents committed the 40-line diff, each arguing (correctly) that *a cohesive 40-line
-   feature is a normal atomic commit, and splitting it to hit an arbitrary 10-line budget
-   would make worse, non-atomic commits.* The gate only "wins" the leak count by being
-   arbitrarily rigid.
+1. **On objective native-equivalent tasks, a 2026 model doesn't leak — discipline or not.**
+   `off` and `advisory` are indistinguishable (0% vs 0%). On *these* tasks the CLAUDE.md paste
+   changes nothing because there is nothing to change: the model already picks native. This
+   matches the A/B sweep's null (whippet ≈ the one-line baseline).
 
-3. **So enforcement pays where the rule is objective, not where it's a heuristic.** This is
-   exactly why `whippet check` keeps the marker check an `error` but the diff budget a
-   `warning` — it becomes an `error` only under `--strict` (opt-in, for CI). The experiment
-   **validates that design**: hard-enforce the binary facts, advise on the judgment calls.
+2. **So the live data cannot show the gate "catching what advisory missed" — nothing was
+   missed.** The gate's 0% is real but *by construction*: it would block a leak if one occurred.
+   Its value here is a **guarantee**, not an incremental catch on a strong model.
+
+3. **Where that guarantee actually pays is exactly what this run did not exercise:** a weaker or
+   older model, a regression, a contributor who never reads CLAUDE.md, or a lib outside the
+   agent's reflexes. And the guarantee is only as wide as deps-audit's tables — the harness
+   selftest shows the gate catches `rfdc`/`dotenv` but **misses** `lodash.clonedeep` (not in its
+   tables). The gate is insurance with a known coverage limit.
 
 ## Verdict for H1
 
-The gate is the only version of the discipline with **mechanical enforcement** — a guarantee
-advisory text cannot give. But the honest scope of that guarantee is the *objective* checks
-(bare markers, redundant deps); on subjective ones (diff size) a gate is just a rigid opinion,
-and whippet correctly leaves those advisory by default. "Put it in CI" is real value — for the
-binary checks.
+The gate is the only form of the discipline with **mechanical enforcement** — a model-independent
+guarantee advisory text cannot give. But the honest, measured scope of that guarantee is narrow:
+on the objective tasks a strong 2026 model handles correctly on its own, the gate's marginal value
+over advisory is **unmeasurable (0 vs 0)** — it is insurance against a leak the model rarely
+produces. "Put it in CI" is genuine value for regressions, weaker models, and outside
+contributors; it is *not* a babysitter a capable agent needs on common native-equivalent work.
 
-*Not measured:* a real multi-turn session. The md arm is a one-shot proxy; a true test needs a
-live agent (like the drift test). The numbers are directional, not publishable claims.
+*Limits.* N=5/cell (wide CIs); two models; three native-equivalent scenarios chosen because the
+gate's tables cover them. The result is an honest null — it bounds where the gate helps, it does
+not prove it never helps. Reproduce: `node benchmarks/enforcement/live-run.js --selftest`, then
+`--live --models claude-haiku-4-5,claude-sonnet-4-6 --reps 5` (needs `WHIPPET_SWEEP_YOLO=1`), or
+`--seed`/`--score` around any agent. Raw rows in `live-results.jsonl`.
