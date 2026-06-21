@@ -323,7 +323,7 @@
         {
           "kind": "invalid_autoupdates_channel",
           "token": "beta",
-          "note": "Not a valid autoUpdatesChannel; enum is latest/stable/rc."
+          "note": "Not a valid autoUpdatesChannel; enum is latest/stable."
         }
       ],
       "id": "s7"
@@ -1310,7 +1310,7 @@
         {
           "kind": "invalid_autoupdates_channel",
           "token": "nightly",
-          "note": "autoUpdatesChannel enum is latest/stable/rc only. 'nightly' is invalid."
+          "note": "autoUpdatesChannel enum is latest/stable only. 'nightly' is invalid."
         },
         {
           "kind": "invalid_statusline_type",
@@ -1688,7 +1688,7 @@
       "id": "s37"
     },
     {
-      "description": "Tricky clean trap: defaultMode 'dontAsk', autoUpdatesChannel 'rc', and a 'bypassPermissions' override in the local file are ALL valid enum members and must NOT be flagged. This measures false positives on the less-common-but-legal values.",
+      "description": "Tricky clean trap: defaultMode 'dontAsk', autoUpdatesChannel 'stable', and a 'bypassPermissions' override in the local file are ALL valid enum members and must NOT be flagged. This measures false positives on the less-common-but-legal values.",
       "settings": {
         "permissions": {
           "allow": [
@@ -1697,7 +1697,7 @@
           ],
           "defaultMode": "dontAsk"
         },
-        "autoUpdatesChannel": "rc"
+        "autoUpdatesChannel": "stable"
       },
       "settingsLocal": {
         "permissions": {
@@ -1709,7 +1709,7 @@
       "id": "s38"
     },
     {
-      "description": "Invalid autoUpdatesChannel: 'beta' is not a release channel. Valid channels are latest, stable, rc. The defaultMode 'plan' and the statusLine are both fine — the only drift is the channel value.",
+      "description": "Invalid autoUpdatesChannel: 'beta' is not a release channel. Valid channels are latest, stable. The defaultMode 'plan' and the statusLine are both fine — the only drift is the channel value.",
       "settings": {
         "permissions": {
           "defaultMode": "plan",
@@ -1731,7 +1731,7 @@
         {
           "kind": "invalid_autoupdates_channel",
           "token": "beta",
-          "note": "autoUpdatesChannel enum is latest/stable/rc; 'beta' is not valid and is ignored, so the channel silently stays at its default."
+          "note": "autoUpdatesChannel enum is latest/stable; 'beta' is not valid and is ignored, so the channel silently stays at its default."
         }
       ],
       "id": "s39"
@@ -1800,7 +1800,7 @@
             "Read"
           ]
         },
-        "autoUpdatesChannel": "rc",
+        "autoUpdatesChannel": "stable",
         "enableAllProjectMcpServers": false
       },
       "settingsLocal": {
@@ -2583,10 +2583,10 @@
       "id": "s54"
     },
     {
-      "description": "Global user settings.json with newer-but-valid hook events that a stale detector might not recognize: SessionEnd, PostToolUseFailure, SubagentStop, PreCompact (with manual/auto matchers), Notification. Mixes command, prompt, and agent hook types. autoUpdatesChannel 'rc' and effortLevel 'high' are valid. No planted issues.",
+      "description": "Global user settings.json with newer-but-valid hook events that a stale detector might not recognize: SessionEnd, PostToolUseFailure, SubagentStop, PreCompact (with manual/auto matchers), Notification. Mixes command, prompt, and agent hook types. autoUpdatesChannel 'stable' and effortLevel 'high' are valid. No planted issues.",
       "settings": {
         "model": "opus",
-        "autoUpdatesChannel": "rc",
+        "autoUpdatesChannel": "stable",
         "effortLevel": "high",
         "alwaysThinkingEnabled": true,
         "hooks": {
@@ -2829,7 +2829,7 @@
       "id": "s58"
     },
     {
-      "description": "Minimal-but-tricky settings.json full of clean traps for naive matchers: an empty-string hook matcher (valid, matches all), a '*' matcher (valid), a Stop hook with no matcher (valid - Stop takes none), a hook with timeout as a fractional positive number, and a Glob|Grep matcher. spinnerVerbs and language are valid extras. No planted issues.",
+      "description": "Minimal-but-tricky settings.json full of clean traps for naive matchers: an empty-string hook matcher (valid, matches all), a '*' matcher (valid), a Stop hook with no matcher (valid - Stop takes none), and a Glob|Grep matcher. spinnerVerbs and language are valid extras. No planted issues.",
       "settings": {
         "language": "italian",
         "spinnerVerbs": {
@@ -2848,7 +2848,7 @@
                 {
                   "type": "command",
                   "command": "true",
-                  "timeout": 2.5
+                  "timeout": 30
                 }
               ]
             },
@@ -3113,7 +3113,7 @@
       "id": "s64"
     },
     {
-      "description": "CLEAN TRAP: settings.json plus a settings.local.json that uses several valid-but-uncommon features (SessionEnd hook, dontAsk defaultMode, autoUpdatesChannel 'rc', a Read tool-only allow rule). Nothing here is drift.",
+      "description": "CLEAN TRAP: settings.json plus a settings.local.json that uses several valid-but-uncommon features (SessionEnd hook, dontAsk defaultMode, autoUpdatesChannel 'stable', a Read tool-only allow rule). Nothing here is drift.",
       "settings": {
         "permissions": {
           "allow": [
@@ -3127,7 +3127,7 @@
         "permissions": {
           "defaultMode": "dontAsk"
         },
-        "autoUpdatesChannel": "rc",
+        "autoUpdatesChannel": "stable",
         "hooks": {
           "SessionEnd": [
             {

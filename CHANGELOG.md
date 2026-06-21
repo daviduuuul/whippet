@@ -4,6 +4,22 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-06-22
+
+Precision & recall patch for config-audit — eval-driven, every change verified against
+the Claude Code docs. Corpus recall 96.5% → 98.8%, zero false positives.
+
+### Added
+- A permissions check for an **allow rule shadowed by a broader deny**: a wide glob deny
+  (e.g. `Bash(git push *)`) subsumes a more specific allow (e.g. `Bash(git push origin feature/*)`),
+  and since deny always wins — rule specificity does not change evaluation order — the allow
+  silently never applies. The finding names both rules. (Previously only exact allow/deny
+  duplicates were caught.)
+
+### Fixed
+- A hook `timeout` must be a positive **integer** number of seconds; a fractional value such
+  as `2.5` is now flagged as malformed (it was silently accepted before).
+
 ## [3.0.0] - 2026-06-21
 
 **Breaking — re-scoped to a config-only auditor.** Whippet's lean-code discipline has moved to

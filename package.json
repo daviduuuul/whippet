@@ -1,6 +1,6 @@
 {
   "name": "whippet",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "description": "Config-drift auditor for Claude Code setups",
   "license": "MIT",

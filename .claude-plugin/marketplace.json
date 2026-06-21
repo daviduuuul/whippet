@@ -6,7 +6,7 @@
       "name": "whippet",
       "source": "./whippet",
       "description": "Config-drift auditor for Claude Code setups: a read-only audit for dead plugin/hook/MCP references, fragile local marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files across settings.json and settings.local.json. One command, /whippet-config, plus a quiet SessionStart advisory on errors.",
-      "version": "3.0.0"
+      "version": "3.0.1"
     }
   ]
 }

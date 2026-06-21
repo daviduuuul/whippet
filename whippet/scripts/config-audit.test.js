@@ -533,9 +533,9 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   writeJSON(path.join(cfg, 'settings.json'), { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: `node "${hk}"`, timeout: 5 }] }] } });
   ck('P2 hook timeout 5 -> no finding', count(audit(cfg), 'hooks') === 0);
 }
-{ // P2b fractional timeout is valid (seconds, not restricted to integers)
+{ // P2b fractional timeout is malformed — Claude Code expects an integer number of seconds
   const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo x', timeout: 2.5 }] }] } } });
-  ck('P2b hook timeout 2.5 -> no finding', count(r, 'hooks') === 0);
+  ck('P2b hook timeout 2.5 -> warning (non-integer)', hasFinding(r, 'hooks', 'invalid hook timeout: PreToolUse'));
 }
 { // P2c non-number timeout is still flagged
   const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo x', timeout: 'soon' }] }] } } });
@@ -544,6 +544,18 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
 { // same rule in allow and deny -> warning (deny wins)
   const r = run({ settings: { permissions: { allow: ['Bash(rm *)'], deny: ['Bash(rm *)'] } } });
   ck('P3 rule in allow+deny -> warning', hasFinding(r, 'permissions', 'rule in both allow and deny: Bash(rm *)'));
+}
+{ // P3b a broader glob deny subsumes a more specific allow -> warning (deny wins silently)
+  const r = run({ settings: { permissions: { allow: ['Bash(git push origin feature/*)'], deny: ['Bash(git push *)'] } } });
+  ck('P3b broad deny shadows narrow allow -> warning', hasFinding(r, 'permissions', 'allow rule shadowed by a broader deny: Bash(git push origin feature/*)'));
+}
+{ // P3c a deny on a different command does NOT shadow the allow -> no false positive
+  const r = run({ settings: { permissions: { allow: ['Bash(git push origin main)'], deny: ['Bash(git pull *)'] } } });
+  ck('P3c unrelated deny -> no shadow finding', count(r, 'permissions') === 0);
+}
+{ // P3d a literal (non-glob) deny that doesn't equal the allow does NOT shadow it
+  const r = run({ settings: { permissions: { allow: ['Bash(npm run build)'], deny: ['Bash(npm run test)'] } } });
+  ck('P3d literal deny mismatch -> no shadow finding', count(r, 'permissions') === 0);
 }
 { // MCP server with both command and url -> warning
   const r = run(mcpFix({ mcpServers: { x: { command: 'npx foo', url: 'http://a' } } }));

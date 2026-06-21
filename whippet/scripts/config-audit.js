@@ -354,11 +354,11 @@ function audit(configDir) {
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
           }
-          // timeout is a positive number of seconds (int or fractional); absent uses a default
-          if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !(h.timeout > 0))) {
+          // timeout is a positive integer number of seconds; absent uses a default
+          if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !Number.isInteger(h.timeout) || h.timeout <= 0)) {
             add('warning', 'hooks', `invalid hook timeout: ${event}`,
-              `timeout must be a positive number of seconds; got ${JSON.stringify(h.timeout)}`,
-              'set a positive number, or remove it to use the default', `${label}:hooks.${event}`);
+              `timeout must be a positive integer number of seconds; got ${JSON.stringify(h.timeout)}`,
+              'set a positive integer, or remove it to use the default', `${label}:hooks.${event}`);
           }
         }
       }
@@ -386,13 +386,31 @@ function audit(configDir) {
         }
       }
     }
-    // a rule in both allow and deny — deny wins, so the allow is dead weight
-    const denySet = new Set((Array.isArray(perms.deny) ? perms.deny : []).filter((r) => typeof r === 'string'));
+    // an allow rule nullified by deny — exact duplicate, or a broader glob deny that subsumes it.
+    // deny is evaluated before allow and specificity does not change that order, so the allow is dead weight.
+    const denyRules = (Array.isArray(perms.deny) ? perms.deny : []).filter((r) => typeof r === 'string');
+    const denySet = new Set(denyRules);
+    const splitRule = (r) => { const m = /^([^(]+)\((.*)\)$/.exec(r); return m ? { tool: m[1], spec: m[2] } : { tool: r, spec: null }; };
+    const denyGlobRe = (s) => new RegExp('^' + s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') + '$');
+    const denySubsumes = (deny, allow) => {
+      const d = splitRule(deny), a = splitRule(allow);
+      // only a glob deny on the same tool can subsume a more specific allow; literal/tool-wide is left to exact match
+      if (d.tool !== a.tool || !d.spec || !d.spec.includes('*') || a.spec === null) return false;
+      return denyGlobRe(d.spec).test(a.spec);
+    };
     for (const rule of (Array.isArray(perms.allow) ? perms.allow : [])) {
-      if (typeof rule === 'string' && denySet.has(rule)) {
+      if (typeof rule !== 'string') continue;
+      if (denySet.has(rule)) {
         add('warning', 'permissions', `rule in both allow and deny: ${rule}`,
           'deny wins, so this allow rule never takes effect',
           'remove it from allow or from deny', `${label}:permissions`);
+        continue;
+      }
+      const shadow = denyRules.find((d) => denySubsumes(d, rule));
+      if (shadow) {
+        add('warning', 'permissions', `allow rule shadowed by a broader deny: ${rule}`,
+          `the deny rule ${shadow} subsumes this allow, and deny always wins — so the allow never applies`,
+          'narrow the deny, or drop this allow', `${label}:permissions`);
       }
     }
 
