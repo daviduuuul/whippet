@@ -63,6 +63,46 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { 'abort-controller': '^3' }, engines: { node: '>=15' } }, files: { 'index.js': "require('abort-controller')" } });
   ck('N7 abort-controller on Node 15 -> no finding (gated)', count(r, 'native') === 0);
 }
+{ // N8 single-purpose deep-clone packages -> structuredClone (sinceNode 17)
+  const r = run({ pkg: { dependencies: { 'lodash.clonedeep': '^4' }, engines: { node: '>=18' } }, files: { 'index.js': "require('lodash.clonedeep')" } });
+  ck('N8 lodash.clonedeep -> structuredClone finding', hasFinding(r, 'native', 'native equivalent available: lodash.clonedeep'));
+}
+{ // N9 fast-copy -> structuredClone
+  const r = run({ pkg: { dependencies: { 'fast-copy': '^3' }, engines: { node: '>=20' } }, files: { 'index.js': "require('fast-copy')" } });
+  ck('N9 fast-copy -> structuredClone finding', hasFinding(r, 'native', 'native equivalent available: fast-copy'));
+}
+{ // N10 isarray -> Array.isArray (obsolete shim, always native)
+  const r = run({ pkg: { dependencies: { isarray: '^2' }, engines: { node: '>=16' } }, files: { 'index.js': "require('isarray')" } });
+  ck('N10 isarray -> Array.isArray finding', hasFinding(r, 'native', 'native equivalent available: isarray'));
+}
+{ // N11 es6-promise -> global Promise
+  const r = run({ pkg: { dependencies: { 'es6-promise': '^4' }, engines: { node: '>=16' } }, files: { 'index.js': "require('es6-promise')" } });
+  ck('N11 es6-promise -> Promise finding', hasFinding(r, 'native', 'native equivalent available: es6-promise'));
+}
+{ // N12 p-defer -> Promise.withResolvers, gated to Node 22
+  const r22 = run({ pkg: { dependencies: { 'p-defer': '^4' }, engines: { node: '>=22' } }, files: { 'index.js': "require('p-defer')" } });
+  const r20 = run({ pkg: { dependencies: { 'p-defer': '^4' }, engines: { node: '>=20' } }, files: { 'index.js': "require('p-defer')" } });
+  ck('N12 p-defer flagged on Node 22, gated on Node 20', hasFinding(r22, 'native', 'native equivalent available: p-defer') && count(r20, 'native') === 0);
+}
+{ // N13 minimist -> util.parseArgs, gated to Node 20 (parseArgs stable at 20)
+  const r20 = run({ pkg: { dependencies: { minimist: '^1' }, engines: { node: '>=20' } }, files: { 'index.js': "require('minimist')" } });
+  const r18 = run({ pkg: { dependencies: { minimist: '^1' }, engines: { node: '>=18' } }, files: { 'index.js': "require('minimist')" } });
+  ck('N13 minimist flagged on Node 20, gated on Node 18', hasFinding(r20, 'native', 'native equivalent available: minimist') && count(r18, 'native') === 0);
+}
+{ // N14 userland querystring package -> node:querystring / URLSearchParams
+  const r = run({ pkg: { dependencies: { querystring: '^0.2' }, engines: { node: '>=16' } }, files: { 'index.js': "require('querystring')" } });
+  ck('N14 querystring -> URLSearchParams finding', hasFinding(r, 'native', 'native equivalent available: querystring'));
+}
+{ // N15 PRECISION: node-fetch must NOT be flagged below Node 21 (global fetch experimental 18-20, stable 21)
+  const r18 = run({ pkg: { dependencies: { 'node-fetch': '^3' }, engines: { node: '>=18' } }, files: { 'index.js': "require('node-fetch')" } });
+  const r22 = run({ pkg: { dependencies: { 'node-fetch': '^3' }, engines: { node: '>=22' } }, files: { 'index.js': "require('node-fetch')" } });
+  ck('N15 node-fetch gated below Node 21, flagged on Node 22', count(r18, 'native') === 0 && hasFinding(r22, 'native', 'native equivalent available: node-fetch'));
+}
+{ // N16 same precision floor for cross-fetch
+  const r20 = run({ pkg: { dependencies: { 'cross-fetch': '^4' }, engines: { node: '>=20' } }, files: { 'index.js': "require('cross-fetch')" } });
+  const r22 = run({ pkg: { dependencies: { 'cross-fetch': '^4' }, engines: { node: '>=22' } }, files: { 'index.js': "require('cross-fetch')" } });
+  ck('N16 cross-fetch gated below Node 21, flagged on Node 22', count(r20, 'native') === 0 && hasFinding(r22, 'native', 'native equivalent available: cross-fetch'));
+}
 
 /* ---------------- unused ---------------- */
 { // U1 declared but never imported -> info

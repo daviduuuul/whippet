@@ -32,14 +32,14 @@ function safeReaddir(p) { try { return fs.readdirSync(p, { withFileTypes: true }
 const NATIVE = {
   'uuid': { to: 'crypto.randomUUID()', sinceNode: 16, note: 'native covers v4 only; v1/v3/v5/v7 have no native equivalent' },
   'node-uuid': { to: 'crypto.randomUUID()', sinceNode: 16, note: 'native covers v4 only; v1/v3/v5/v7 have no native equivalent' },
-  'node-fetch': { to: 'global fetch', sinceNode: 18 },
-  'cross-fetch': { to: 'global fetch', sinceNode: 18 },
+  'node-fetch': { to: 'global fetch', sinceNode: 21, note: 'global fetch is experimental on Node 18-20, stable from 21' },
+  'cross-fetch': { to: 'global fetch', sinceNode: 21, note: 'global fetch is experimental on Node 18-20, stable from 21' },
   'left-pad': { to: 'String.prototype.padStart', sinceNode: 8 },
   'pad-left': { to: 'String.prototype.padStart', sinceNode: 8 },
   'mkdirp': { to: 'fs.mkdirSync(p, { recursive: true })', sinceNode: 12 },
   'make-dir': { to: 'fs.mkdirSync(p, { recursive: true })', sinceNode: 12 },
   'rimraf': { to: 'fs.rmSync(p, { recursive: true, force: true })', sinceNode: 16 },
-  'dotenv': { to: 'node --env-file=.env', sinceNode: 21 },
+  'dotenv': { to: 'node --env-file=.env', sinceNode: 21, note: 'native --env-file lacks dotenv\'s ${VAR} expansion and programmatic parse' },
   'is-odd': { to: 'n % 2 !== 0', sinceNode: 0 },
   'is-even': { to: 'n % 2 === 0', sinceNode: 0 },
   'is-number': { to: "typeof x === 'number' / Number.isFinite", sinceNode: 0, note: 'drops is-number\'s numeric-string acceptance, e.g. is-number("5")' },
@@ -54,6 +54,13 @@ const NATIVE = {
   'abort-controller': { to: 'global AbortController', sinceNode: 16 },
   'node-abort-controller': { to: 'global AbortController', sinceNode: 16 },
   'text-encoding': { to: 'global TextEncoder / TextDecoder', sinceNode: 11 },
+  'lodash.clonedeep': { to: 'structuredClone()', sinceNode: 17, note: 'structuredClone handles Date/Map/Set but throws on functions and drops class prototypes' },
+  'fast-copy': { to: 'structuredClone()', sinceNode: 17, note: 'structuredClone handles Date/Map/Set but throws on functions and drops class prototypes' },
+  'isarray': { to: 'Array.isArray', sinceNode: 0 },
+  'es6-promise': { to: 'global Promise', sinceNode: 4 },
+  'p-defer': { to: 'Promise.withResolvers()', sinceNode: 22 },
+  'minimist': { to: 'util.parseArgs', sinceNode: 20, note: 'util.parseArgs is stricter — declare options up front; it throws on unknown flags unless strict:false' },
+  'querystring': { to: 'node:querystring / URLSearchParams', sinceNode: 0, note: 'prefer URLSearchParams for new code; node:querystring is legacy but built in' },
 };
 
 // "Pick one" groups: two members declared at once is worth a look (info, never blocks).
