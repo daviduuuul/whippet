@@ -34,15 +34,16 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
 - **Plugin hooks** (`whippet/hooks/hooks.json`) — ship to users. `SessionStart` →
   `whippet-activate.js`; `UserPromptSubmit` → `whippet-mode-tracker.js`. Mode logic lives in
   `whippet-core.js` (default `full`; persisted in flag file `$CLAUDE_CONFIG_DIR/.whippet-active`).
-  `PostToolUse(Edit|Write|MultiEdit)` → `whippet-drift-track.js` and `Stop` →
-  `whippet-drift-check.js` — code↔docs drift: track edited code vs docs in a per-session state
-  file, surface **one** yellow advisory per wave when code changed but no docs did. Logic in
-  `whippet-drift-core.js`; off with `WHIPPET_DRIFT_OFF=1`, threshold via `WHIPPET_DRIFT_THRESHOLD`.
+  `PostToolUse(Edit|Write|MultiEdit)` → `whippet-posttooluse.js` (**one** node spawn doing both
+  per-edit jobs — ~50ms/edit saved vs two hooks, more on Windows) and `Stop` → `whippet-drift-check.js`
+  — code↔docs drift: track edited code vs docs in a per-session state file, surface **one** yellow
+  advisory per wave when code changed but no docs did. Logic in `whippet-drift-core.js`; off with
+  `WHIPPET_DRIFT_OFF=1`, threshold via `WHIPPET_DRIFT_THRESHOLD`.
   **Autonomous deterministic advisories (2.0):** `SessionStart(startup)` →
   `whippet-config-check.js` (runs the config audit, speaks **only on errors**, `WHIPPET_CONFIG_OFF=1`);
-  `PostToolUse` → `whippet-deps-check.js` (runs the deps audit when `package.json` changes, surfaces
-  new native-equivalent/duplicate findings deduped per session, `WHIPPET_DEPS_OFF=1`). Both reuse the
-  `sessionStatePath(kind)` helper in `whippet-drift-core.js` and the engines in `whippet/scripts/`.
+  the deps advisory (deps audit when `package.json` changes — new native-equivalent/duplicate findings,
+  deduped per session, `WHIPPET_DEPS_OFF=1`) runs **inside `whippet-posttooluse.js`** (`whippet-deps-core.js`).
+  All reuse the `sessionStatePath(kind)` helper in `whippet-drift-core.js` and the engines in `whippet/scripts/`.
 - **Repo dev hook** (`.claude/settings.json`) — local only. `PostToolUse(Edit|Write)` →
   `scripts/on-edit.js` reruns the suite when you touch hooks / scripts / manifests / README and
   blocks (exit 2) on failure. Whippet dogfooding its own "always-on runnable check".

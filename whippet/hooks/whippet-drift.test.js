@@ -71,7 +71,7 @@ ck('editedFiles empty/garbage', editedFiles({}).length === 0 && editedFiles(null
 
 // integration: the hooks must survive empty/closed AND malformed stdin without hanging
 // or crashing (today's silent-failure lesson). spawnSync(input:'') closes stdin at once.
-for (const hook of ['whippet-drift-track.js', 'whippet-drift-check.js']) {
+for (const hook of ['whippet-posttooluse.js', 'whippet-drift-check.js']) {
   const empty = spawnSync(process.execPath, [path.join(__dirname, hook)], { input: '', timeout: 5000, encoding: 'utf8' });
   ck(`${hook}: empty stdin -> exit 0, no hang`, empty.status === 0 && empty.signal === null);
   ck(`${hook}: empty stdin -> no spurious output`, (empty.stdout || '') === '');

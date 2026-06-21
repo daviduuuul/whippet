@@ -59,15 +59,15 @@ ck('statePath stays backward-compatible', statePath({ session_id: 'abc' }).inclu
   const input = JSON.stringify({ session_id: 's1', tool_input: { file_path: path.join(proj, 'package.json') } });
   const state = tmp(); // isolate the dedup state file (sessionStatePath falls back to CLAUDE_CONFIG_DIR)
   const env = { CLAUDE_CONFIG_DIR: state };
-  const r1 = runHook('whippet-deps-check.js', { env, input });
+  const r1 = runHook('whippet-posttooluse.js', { env, input });
   ck('deps-check: native dep -> advisory with uuid', /whippet deps/.test(r1.stdout) && /uuid/.test(r1.stdout));
-  const r2 = runHook('whippet-deps-check.js', { env, input });
+  const r2 = runHook('whippet-posttooluse.js', { env, input });
   ck('deps-check: deduped on second edit -> silent', r2.stdout.trim() === '');
 }
 { // editing a non-package.json file -> nothing
   const proj = tmp();
   const input = JSON.stringify({ session_id: 's2', tool_input: { file_path: path.join(proj, 'src.js') } });
-  const r = runHook('whippet-deps-check.js', { env: { CLAUDE_CONFIG_DIR: tmp() }, input });
+  const r = runHook('whippet-posttooluse.js', { env: { CLAUDE_CONFIG_DIR: tmp() }, input });
   ck('deps-check: non-package.json edit -> no output', r.stdout.trim() === '');
 }
 
