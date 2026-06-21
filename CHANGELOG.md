@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [2.0.1] — 2026-06-21
+
+### Performance
+- **Merged the two PostToolUse hooks into one** (`whippet-posttooluse.js`). Every
+  Edit/Write/MultiEdit fired two node spawns (drift-track + deps-check, ~50ms each on
+  Windows); now one process does both jobs — ~50ms saved per edit, more on Windows.
+  Behavior-preserving (same `WHIPPET_DRIFT_OFF`/`WHIPPET_DEPS_OFF` switches, per-session
+  dedup, never-throws). Validated by plugin-dev:plugin-validator.
+
 ## [2.0.0] — 2026-06-21
 
 ### Changed (BREAKING)
