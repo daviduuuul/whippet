@@ -1,12 +1,12 @@
-# Model-tier sweep — PRE-REGISTRATION (results pending)
+# Model-tier sweep — pre-registration + results
 
-> **RESULTS PENDING — the sweep has not been run.** This file pre-registers the
-> design and the outcomes *before* any data exists, so the result can't be
-> rationalised after the fact (METHODOLOGY's "pre-register before you look"). The
-> tooling (`scripts/bench-sweep.js`, the per-model split in `scripts/bench-report.js`,
-> the two harder fixtures) is built and unit-checked in `npm test`; the run itself
-> makes hundreds of paid model calls and must happen on a machine with the `claude`
-> CLI. **No measured claim ships until the rows are in `runs.jsonl`.**
+> **RESULTS IN (2026-06-21).** The sweep ran: **459 observations**, 3 models × 3 arms ×
+> 7 fixtures, n=8/cell. **Outcome: the null (pre-committed outcome #3 below) — and it
+> *reverses* the lead hypothesis.** `whippet` ties the one-line `baseline` on every tier,
+> on correctness and on diff size; the only robust effect — an un-nudged agent writing
+> more code — is **largest on the strongest model (Opus), not the weakest.** Full tables
+> in [Results](#results-2026-06-21). The pre-registration below is kept verbatim (written
+> before any data existed, per METHODOLOGY's "pre-register before you look").
 
 ## Why this experiment
 
@@ -70,3 +70,76 @@ fixture contamination (the 2 new fixtures stay private/gitignored — weak model
 common patterns, so privacy matters *more* here); cost (de-scope a tier or fixture, never
 the `baseline` arm, never mid-fixture); model-id drift (verify `--model` at run time);
 temperature-0 non-determinism (n=8 mitigates, doesn't remove).
+
+## Results (2026-06-21)
+
+Run on 2026-06-21 with the `claude` CLI, n=8/cell, temperature 0. **459 observations** =
+75 pre-existing Opus rows (5 public fixtures) + 384 new (Haiku 168, Sonnet 168, Opus 48
+on the 2 new fixtures). Tables are `node scripts/bench-report.js` over the committed
+`runs.jsonl` — re-run it to reproduce them.
+
+**Outcome: the null (pre-committed outcome #3), with a twist that reverses the lead
+hypothesis.** `whippet` does not beat the one-line `baseline` on any tier, on correctness
+or on diff size — if anything it is a hair larger, so the discipline's extra prose buys no
+measured win over a one-liner. The only robust effect is that the un-nudged `off` arm
+writes more code, and that gap is **largest on the strongest model (Opus) and shrinks on
+the weaker ones** — the opposite of the "cheaper models benefit more" prediction this
+sweep set out to test.
+
+### Correct by model × arm (Wilson 95% CI)
+
+| Model | whippet | baseline | off |
+|---|---|---|---|
+| claude-opus-4-8 | 41/41 (91–100%) | 41/41 (91–100%) | 41/41 (91–100%) |
+| claude-haiku-4-5 | 50/56 (79–95%) | 52/56 (83–97%) | 51/56 (81–96%) |
+| claude-sonnet-4-6 | 55/56 (91–100%) | 56/56 (94–100%) | 56/56 (94–100%) |
+
+No arm separates from another at any tier — every interval overlaps. `whippet` is
+marginally the *lowest* on each tier (see the over-cut cost below).
+
+### Diff size by model × arm (mean LOC added)
+
+| Model | whippet | baseline | off |
+|---|---|---|---|
+| claude-opus-4-8 | 8.9 | 6.3 | 19.2 |
+| claude-haiku-4-5 | 9.7 | 9.1 | 11.4 |
+| claude-sonnet-4-6 | 5.8 | 5.6 | 6.6 |
+
+The `off`→disciplined gap is ~2.5–3× on Opus, ~1.2× on Sonnet and Haiku. The bloat an
+un-nudged agent produces is **biggest on the strongest model**, not the weakest, so a
+leanness nudge pays off *most* on Opus here. `whippet` vs `baseline` is a wash on all
+three (whippet a touch higher).
+
+### By category (all models pooled — correct · mean LOC)
+
+| Category | whippet | baseline | off |
+|---|---|---|---|
+| trap_reuse | 21/21 · 3.0 | 21/21 · 2.6 | 21/21 · 5.6 |
+| trap_stdlib | 21/21 · 2.5 | 21/21 · 2.9 | 21/21 · 5.9 |
+| trap_yagni | 21/21 · 1.8 | 21/21 · 1.8 | 21/21 · 7.2 |
+| trap_overcut | 38/45 · 20.4 | 41/45 · 17.1 | 40/45 · 26.8 |
+| batch_size | 45/45 · 3.5 | 45/45 · 3.5 | 45/45 · 4.5 |
+
+`off` is correct as often as the disciplined arms even on the traps — 2026-tier models
+don't *crack*, they just write more around the problem. The one place the discipline has
+a measurable *cost* is **trap_overcut**: `whippet` 38/45 vs `baseline` 41/45 — its removal
+bias occasionally cuts code that was load-bearing. `deps_added` was 0 in every cell;
+`files_added` was 0 everywhere except a single `whippet` run on trap_overcut/Opus.
+
+### What it means for whippet
+
+The README positions whippet as a **convenience wrapper** — install-once portability,
+mode control, the deterministic config/deps/marker checks — explicitly *not* a measured
+"less code" or "beats the baseline" edge. This sweep **confirms** that across three model
+tiers and **closes the standing objection** that the 2026-06-19 A/B "only tested the
+strongest model": the one-line baseline ties whippet on Haiku and Sonnet too. The honest
+cross-model finding now on the record, with CIs and per-category splits and no
+extrapolation: *an un-nudged agent's bloat grows with model capability, and any one-line
+nudge erases most of it.*
+
+### Not measured
+
+Real token/$ cost, multi-turn / tool-use sessions, output maintainability or readability,
+and anything outside these 7 single-shot fixtures. The 2 hardest fixtures stay private
+(gitignored) to avoid training-set contamination; `runs.jsonl` carries only the scored
+metrics (model / arm / category + booleans / counts), never fixture contents.

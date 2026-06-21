@@ -39,6 +39,15 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   scan now records when it was truncated, and the unused check stays silent on a partial read
   (consistent with its existing "silent when no sources" behavior). The native-equivalent and
   duplicate-purpose checks, which don't depend on the source scan, are unaffected.
+### Changed
+- **Model-tier sweep — results in** (`benchmarks/results/2026-06-21-model-sweep.md`, raw
+  rows in `runs.jsonl`). The pre-registered sweep ran: 459 observations, 3 models × 3 arms
+  × 7 fixtures, n=8. Outcome: the **null** — `whippet` ties the one-line `baseline` on
+  Haiku, Sonnet *and* Opus (correctness and diff size); the only robust effect is that an
+  un-nudged agent writes more code, **largest on the strongest model** (the reverse of the
+  "cheaper models benefit more" hypothesis). Confirms the README's convenience-wrapper
+  positioning and closes the "only tested the strongest model" objection. No README change
+  (it stays minimal); the measured claim lives in the results file, not the shop window.
 
 ## [2.0.1] — 2026-06-21
 
