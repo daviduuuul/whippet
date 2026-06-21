@@ -223,6 +223,34 @@ trustworthy, tool on a real need. These measure that, and most need no model at 
   Real utility, but risks feature-creep against the lean mandate. Needs explicit OK, and
   only add a check whose FP rate is provably ~0.
 
+## Findings — run 2026-06-21 (edge-facts workflow)
+
+Verified, not assumed (6-agent workflow + manual check against source & Node docs).
+
+**Landscape.**
+- **config-audit — H12 partly answered: ONE real competitor, not zero.** Emasoft **CPV**
+  (a Python/uv validation suite) covers ~1:1 checks (enabled-but-not-installed plugins,
+  fragile local marketplaces, hooks, MCP). *Not* competitors: `cclint` (settings *structure*
+  only, no drift), the native `doctor` (live health, not static drift), trailofbits
+  claude-code-config (templates). **Honest claim:** not "the only one" — the edge is *form*
+  (lean, zero-dep, read-only, single-purpose, in-loop advisory), and possibly the only one
+  that checks a *project-settings* hook target exists on disk.
+- **deps-audit — H13 answered.** UNIQUE on native-equivalent advice and duplicate-purpose
+  detection (none of depcheck / knip / npm-check / dependency-cruiser do either). DOMINATED
+  on declared-but-unused (they use a real AST / module-graph; whippet is regex + substring +
+  cap, and says so in-code). **Honest framing: complementary to knip, not a substitute**
+  (depcheck was archived Jun 2025 and itself points users to knip).
+
+**Engine fact-check → shipped to `main`.**
+- config-audit: catch a transport-less MCP server; `cmpSemver` tolerates a leading `v` and
+  SemVer prerelease tags (PR #24).
+- deps-audit: +5 verified native swaps, a `logger` dup group, more group members, honesty
+  notes on caveated swaps (PR #25).
+- **Rejected after verification:** `uuid` sinceNode 16→15 (`randomUUID` is NOT in Node
+  15.0–15.5); rimraf/mkdirp/array-flatten floor tweaks (Node 11/15 are EOL — zero effect);
+  node-fetch 18→21 and glob→fs.globSync (experimental APIs); ORM / state / css-in-js dup
+  groups (composition-pair false-positive risk).
+
 ## Parking lot (open)
 
 - _(drop new hypotheses below as they come up)_
