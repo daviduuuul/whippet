@@ -39,6 +39,20 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   scan now records when it was truncated, and the unused check stays silent on a partial read
   (consistent with its existing "silent when no sources" behavior). The native-equivalent and
   duplicate-purpose checks, which don't depend on the source scan, are unaffected.
+- **config-audit flags loose root backups, not a tidy `backups/` subdir.** The stale-backups
+  check walked the `backups/` subdir and emitted one info *per file* — punishing a dedicated
+  `backups/` dir (good hygiene) and mislabeling a data archive as a backup. It now flags backups
+  left loose in the config-dir *root* (aggregated into one finding) and ignores a dedicated
+  `backups/` subdir and data archives. Dogfooded on a real config: 19 infos → 1. Also gitignores
+  `.whippet-*` runtime state files.
+- **config-audit catches an MCP server with no transport.** A server in `.mcp.json` / `.claude.json`
+  with no `command`, `url`, or `type` (nothing to launch or connect to) was silently passed; it is
+  now an `error`.
+- **config-audit version-drift tolerates a leading `v` and SemVer prerelease tags.** `cmpSemver`
+  parsed raw digits, so `v2.0.0` vs `2.0.0`, and a release vs its own prerelease, produced a false
+  "plugin out of date". It now strips a leading `v` and ranks a release above its prerelease
+  (`1.2.0` > `1.2.0-beta`).
+
 ### Changed
 - **Model-tier sweep — results in** (`benchmarks/results/2026-06-21-model-sweep.md`, raw
   rows in `runs.jsonl`). The pre-registered sweep ran: 459 observations, 3 models × 3 arms

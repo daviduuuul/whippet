@@ -213,6 +213,9 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
 { // I6 no mcp files -> no finding
   ck('I6 no mcp -> no finding', count(run({ settings: {} }), 'mcp') === 0);
 }
+{ // I7 server with no transport at all (no command/url/type) -> error, not silent
+  ck('I7 no-transport MCP server -> error', hasFinding(run(mcpFix({ mcpServers: { stripped: { env: {} } } })), 'mcp', 'MCP server has no transport: stripped'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error
@@ -454,6 +457,10 @@ ck('version match -> no out-of-date finding',
   !hasFinding(mkWithSourceVersion('2.0.0', '2.0.0'), 'marketplace', 'plugin out of date'));
 ck('version drift: installed ahead of source -> no false out-of-date (numeric compare, not string)',
   !hasFinding(mkWithSourceVersion('1.9.0', '1.10.0'), 'marketplace', 'plugin out of date'));
+ck('version drift: a leading v is tolerated (v2.0.0 == 2.0.0)',
+  !hasFinding(mkWithSourceVersion('2.0.0', 'v2.0.0'), 'marketplace', 'plugin out of date'));
+ck('version drift: a release outranks the source prerelease -> no false out-of-date',
+  !hasFinding(mkWithSourceVersion('1.2.0-beta.1', '1.2.0'), 'marketplace', 'plugin out of date'));
 
 /* ---------------- relative script paths resolve against configDir (no false positive) ---------------- */
 { // C8 relative hook path that exists under configDir -> NOT flagged
