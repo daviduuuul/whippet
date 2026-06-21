@@ -42,8 +42,9 @@ function extractScriptPath(cmd) {
   const q = cmd.match(/"([^"]+\.(?:ps1|mjs|cjs|js|py|sh))"/i);
   const sp = q ? q[1] : (cmd.match(/(\S+\.(?:ps1|mjs|cjs|js|py|sh))(?:\s|$)/i) || [])[1];
   if (!sp) return null;
-  // runtime-resolved paths (${CLAUDE_PLUGIN_ROOT}, %VAR%) can't be checked statically
-  if (/[$%]/.test(sp)) return null;
+  // can't be checked statically: a runtime-resolved path (${CLAUDE_PLUGIN_ROOT}, %VAR%)
+  // or a glob argument (e.g. a formatter over src/**/*.js — never a single literal file)
+  if (/[$%*?]/.test(sp)) return null;
   return sp;
 }
 
