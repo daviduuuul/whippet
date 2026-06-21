@@ -81,6 +81,11 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { chalk: '^5' } }, files: {} });
   ck('U7 no sources -> no unused', count(r, 'unused') === 0);
 }
+{ // U8 the only import is past the depth cap -> scan is partial -> no false 'unused'
+  const deep = Array.from({ length: 13 }, (_, i) => `lvl${i}`).join('/') + '/feature.js';
+  const r = run({ pkg: { dependencies: { deepdep: '^1' } }, files: { 'index.js': 'const x = 1', [deep]: "require('deepdep')" } });
+  ck('U8 import past depth cap -> no false unused', count(r, 'unused') === 0);
+}
 
 /* ---------------- duplicate-purpose ---------------- */
 { // D1 two date libraries -> info

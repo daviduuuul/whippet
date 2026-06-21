@@ -33,6 +33,12 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   regex (`.` doesn't match `\r`, `$` without `/m`) then matched nothing and every
   `// whippet:` marker went undetected. Now splits on `\r\n | \r | \n`, so markers are found
   whatever the line-ending style.
+- **deps-audit no longer reports "possibly unused" from a partial scan.** `collectSources`
+  caps the source walk at depth 12 / 5000 files; if a dependency's only import sat past the
+  cap, the dep read as unused — a false positive from files the auditor never opened. The
+  scan now records when it was truncated, and the unused check stays silent on a partial read
+  (consistent with its existing "silent when no sources" behavior). The native-equivalent and
+  duplicate-purpose checks, which don't depend on the source scan, are unaffected.
 
 ## [2.0.1] — 2026-06-21
 
