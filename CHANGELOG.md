@@ -4,6 +4,16 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+### Added
+- **config-audit flags a typo'd top-level settings key.** A misspelled structural key in
+  `settings.json` / `settings.local.json` (e.g. `enabledPlugin` for `enabledPlugins`,
+  `statusline` for `statusLine`) is valid JSON, so Claude Code silently ignores it and the
+  whole feature goes dark with no error — a drift the schema can't catch at runtime. The
+  audit now warns on an unknown top-level key that is a single edit from a known setting
+  whose correct spelling is absent, naming the intended key. Conservative by construction:
+  an unknown key far from every known setting stays silent (it may be a newer setting we
+  don't list), so there are no false positives — the real hub config flags zero.
+
 ### Fixed
 - **deps-audit reads a full-semver `engines.node` floor correctly.** A floor like
   `">=20.10.0"` was parsed as `min(20, 10, 0) = 0`, so the engine gate treated the

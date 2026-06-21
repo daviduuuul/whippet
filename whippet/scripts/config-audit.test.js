@@ -526,6 +526,38 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   ck('P4 MCP command+url -> warning', hasFinding(r, 'mcp', 'MCP server has both command and url: x'));
 }
 
+/* ---------------- Q. typo'd top-level settings key (valid JSON, silently ignored) ---------------- */
+{ // Q1 dropped trailing 's' -> warning that points at the real key
+  const r = run({ settings: { enabledPlugin: { 'p@m': true } } });
+  ck('Q1 enabledPlugin -> typo warning', hasFinding(r, 'settings', 'unknown settings key: enabledPlugin')
+    && r.findings.some(f => f.category === 'settings' && /enabledPlugins/.test(f.detail)));
+}
+{ // Q2 case typo -> warning suggesting statusLine
+  const r = run({ settings: { statusline: { type: 'command', command: 'x' } } });
+  ck('Q2 statusline -> typo warning', hasFinding(r, 'settings', 'unknown settings key: statusline'));
+}
+{ // Q3 valid known keys -> no false positive
+  const r = run({ settings: { model: 'sonnet', env: { A: '1' }, cleanupPeriodDays: 30, includeCoAuthoredBy: false } });
+  ck('Q3 valid keys -> no settings finding', count(r, 'settings') === 0);
+}
+{ // Q4 unknown key far from every target -> stays silent (conservative; could be a key we don't list)
+  const r = run({ settings: { myCustomThing: 1, anotherWeirdKey: true } });
+  ck('Q4 far-unknown key -> no settings finding', count(r, 'settings') === 0);
+}
+{ // Q5 typo alongside the correct key -> not flagged (the suggestion would be noise)
+  const r = run({ settings: { permissions: { allow: [] }, permission: { allow: [] } } });
+  ck('Q5 typo + correct key present -> not flagged', !hasFinding(r, 'settings', 'unknown settings key: permission'));
+}
+{ // Q6 typo in settings.local.json is caught and labelled to that file
+  const root = tmp(); const cfg = path.join(root, '.claude');
+  writeJSON(path.join(cfg, 'settings.json'), {});
+  writeJSON(path.join(cfg, 'settings.local.json'), { hook: {} });
+  const r = audit(cfg);
+  ck('Q6 local typo -> warning labelled local', r.findings.some(f =>
+    f.category === 'settings' && f.title === 'unknown settings key: hook' && /settings\.local\.json/.test(f.evidence)));
+}
+
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);

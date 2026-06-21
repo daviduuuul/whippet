@@ -57,6 +57,38 @@ const HOOK_TYPES = new Set(['command', 'prompt', 'agent', 'http']);
 const DEFAULT_MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'dontAsk', 'bypassPermissions']);
 const UPDATE_CHANNELS = new Set(['stable', 'latest']);
 
+// Top-level settings keys whose typo is invisible: the JSON stays valid, Claude Code
+// just ignores the unknown key, so a misspelled structural key (enabledPlugin,
+// statusline) silently disables a whole feature. We flag an unknown key ONLY when it's
+// a single edit from one of these high-value targets and the correct spelling is absent
+// — a near-zero-false-positive "did you mean". KNOWN_SETTINGS_KEYS are recognized and
+// skipped; an unknown key far from every target stays silent, so a newer Claude Code key
+// we don't list never becomes a false positive.
+const SETTINGS_TYPO_TARGETS = ['permissions', 'hooks', 'enabledPlugins', 'extraKnownMarketplaces',
+  'statusLine', 'outputStyle', 'enabledMcpjsonServers', 'disabledMcpjsonServers', 'includeCoAuthoredBy',
+  'cleanupPeriodDays', 'autoUpdatesChannel', 'enableAllProjectMcpServers', 'additionalDirectories', 'model', 'env'];
+const KNOWN_SETTINGS_KEYS = new Set([...SETTINGS_TYPO_TARGETS,
+  '$schema', 'apiKeyHelper', 'forceLoginMethod', 'awsAuthRefresh', 'awsCredentialExport', 'disableAllHooks',
+  'disableBypassPermissionsMode', 'preferredNotifChannel', 'spinnerTipsEnabled', 'messageIdleNotifThresholdMs',
+  'alwaysThinkingEnabled', 'todoFeatureEnabled', 'verbose', 'mcpServers']);
+
+// Levenshtein edit distance, short-circuited: we only ask "is it exactly one edit?",
+// so a length gap > 1 can't qualify and returns early (distance is at least |m-n|).
+function editDistance(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 1) return 2;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 // MCP servers live in .mcp.json (project) / .claude.json (user), not settings.json.
 function collectMcp(configDir) {
   const servers = {};
@@ -240,6 +272,19 @@ function audit(configDir) {
   function checkStructured(cfgObj, label) {
     const o = asObj(cfgObj);
     if (!o) return;
+
+    // typo'd top-level key: valid JSON, but an unknown key is silently ignored, so a
+    // misspelled structural key disables a whole feature with no error. Flag only a
+    // single-edit near-miss of a known target whose correct spelling is absent.
+    for (const key of Object.keys(o)) {
+      if (KNOWN_SETTINGS_KEYS.has(key)) continue;
+      const hit = SETTINGS_TYPO_TARGETS.find(t => !(t in o) && editDistance(key, t) === 1);
+      if (hit) {
+        add('warning', 'settings', `unknown settings key: ${key}`,
+          `not a recognized setting, so it is silently ignored — likely a typo of "${hit}"`,
+          `rename "${key}" to "${hit}"`, `${label}:${key}`);
+      }
+    }
 
     // hooks: unknown event name, bad matcher, missing command, missing script
     const hooks = asObj(o.hooks) || {};
