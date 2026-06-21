@@ -246,20 +246,29 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   ck('D4 statusLine inline -> no finding', count(r, 'statusline') === 0);
 }
 
-/* ---------------- E. stale backups ---------------- */
-{ // E1 backups with entries -> info each
+/* ---------------- E. stale backups (loose in the config-dir root) ---------------- */
+{ // E1 backup files loose in the ROOT -> ONE aggregated info (not one per file)
   const r = run({ settings: {}, extra: (cfg) => {
-    fs.mkdirSync(path.join(cfg, 'backups', 'one.removed'), { recursive: true });
-    fs.mkdirSync(path.join(cfg, 'backups', 'two.bak'), { recursive: true });
+    fs.writeFileSync(path.join(cfg, 'settings.json.bak.20260101'), '{}');
+    fs.writeFileSync(path.join(cfg, '.claude.json.backup.123'), '{}');
+    fs.writeFileSync(path.join(cfg, 'CLAUDE.md.bak'), 'x');
   } });
-  ck('E1 backups -> info per entry', count(r, 'stale') === 2);
+  ck('E1 loose root backups -> one aggregated finding', count(r, 'stale') === 1 && hasFinding(r, 'stale', '3 backup file'));
 }
-{ // E2 no backups dir -> no finding
-  ck('E2 no backups dir -> no finding', count(run({ settings: {} }), 'stale') === 0);
+{ // E2 no backups -> no finding
+  ck('E2 no backups -> no finding', count(run({ settings: {} }), 'stale') === 0);
 }
-{ // E3 empty backups dir -> no finding
-  const r = run({ settings: {}, extra: (cfg) => fs.mkdirSync(path.join(cfg, 'backups'), { recursive: true }) });
-  ck('E3 empty backups dir -> no finding', count(r, 'stale') === 0);
+{ // E3 a DEDICATED backups/ subdir is good hygiene -> NOT flagged (the bug we fixed)
+  const r = run({ settings: {}, extra: (cfg) => {
+    fs.mkdirSync(path.join(cfg, 'backups'), { recursive: true });
+    fs.writeFileSync(path.join(cfg, 'backups', 'settings.json.bak.1'), '{}');
+    fs.writeFileSync(path.join(cfg, 'backups', 'memory.jsonl.bak.2'), '{}');
+  } });
+  ck('E3 dedicated backups/ dir -> no finding', count(r, 'stale') === 0);
+}
+{ // E4 a data archive (not a backup) -> not flagged
+  const r = run({ settings: {}, extra: (cfg) => fs.writeFileSync(path.join(cfg, 'session-handoff-archive.jsonl'), '{}') });
+  ck('E4 data archive not flagged as a backup', count(r, 'stale') === 0);
 }
 
 /* ---------------- F. robustness ---------------- */
