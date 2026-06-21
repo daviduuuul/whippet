@@ -6,6 +6,11 @@
 // Position bias is controlled by judging twice with the solutions swapped and
 // counting a win only when it holds both ways (MT-Bench).
 //
+// STATUS: SCAFFOLDING — NOT YET RUN. It has produced zero observations, so whippet
+// makes NO qualitative claim (METHODOLOGY guardrail 6). A real run needs a judge from
+// a DIFFERENT model family than the one under test, recorded both ways; the `selftest`
+// below only checks the resolver, not that any judging happened.
+//
 //   node scripts/judge.js prompt <fixture> <dirA> <dirB> [--swap]
 //   node scripts/judge.js record <fixture> <armA> <armB> <verdict.json> <verdict-swapped.json> [--model M]
 //   node scripts/judge.js selftest
