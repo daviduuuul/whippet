@@ -30,8 +30,8 @@ function safeReaddir(p) { try { return fs.readdirSync(p, { withFileTypes: true }
 // sinceNode = the Node major at/after which the native replacement is reliably
 // available (rounded up past the exact minor to stay conservative).
 const NATIVE = {
-  'uuid': { to: 'crypto.randomUUID()', sinceNode: 16 },
-  'node-uuid': { to: 'crypto.randomUUID()', sinceNode: 16 },
+  'uuid': { to: 'crypto.randomUUID()', sinceNode: 16, note: 'native covers v4 only; v1/v3/v5/v7 have no native equivalent' },
+  'node-uuid': { to: 'crypto.randomUUID()', sinceNode: 16, note: 'native covers v4 only; v1/v3/v5/v7 have no native equivalent' },
   'node-fetch': { to: 'global fetch', sinceNode: 18 },
   'cross-fetch': { to: 'global fetch', sinceNode: 18 },
   'left-pad': { to: 'String.prototype.padStart', sinceNode: 8 },
@@ -42,20 +42,28 @@ const NATIVE = {
   'dotenv': { to: 'node --env-file=.env', sinceNode: 21 },
   'is-odd': { to: 'n % 2 !== 0', sinceNode: 0 },
   'is-even': { to: 'n % 2 === 0', sinceNode: 0 },
-  'is-number': { to: "typeof x === 'number' / Number.isFinite", sinceNode: 0 },
+  'is-number': { to: "typeof x === 'number' / Number.isFinite", sinceNode: 0, note: 'drops is-number\'s numeric-string acceptance, e.g. is-number("5")' },
+  'is-array': { to: 'Array.isArray', sinceNode: 0 },
   'object-assign': { to: 'Object.assign', sinceNode: 6 },
+  'object-keys': { to: 'Object.keys', sinceNode: 0 },
   'array-flatten': { to: 'Array.prototype.flat', sinceNode: 12 },
   'querystringify': { to: 'URLSearchParams', sinceNode: 8 },
   'q': { to: 'native Promise', sinceNode: 0 },
+  'rfdc': { to: 'structuredClone()', sinceNode: 17, note: 'structuredClone handles Date/Map/Set but not functions or class instances' },
+  'clone-deep': { to: 'structuredClone()', sinceNode: 17, note: 'structuredClone handles Date/Map/Set but not functions or class instances' },
+  'abort-controller': { to: 'global AbortController', sinceNode: 16 },
+  'node-abort-controller': { to: 'global AbortController', sinceNode: 16 },
+  'text-encoding': { to: 'global TextEncoder / TextDecoder', sinceNode: 11 },
 };
 
 // "Pick one" groups: two members declared at once is worth a look (info, never blocks).
 const DUP_GROUPS = {
-  date: ['moment', 'dayjs', 'date-fns', 'luxon', 'js-joda'],
-  'http client': ['axios', 'got', 'node-fetch', 'superagent', 'request', 'ky'],
-  'test runner': ['jest', 'mocha', 'vitest', 'ava', 'tape', 'jasmine'],
+  date: ['moment', 'dayjs', 'date-fns', 'luxon', 'js-joda', '@js-temporal/polyfill'],
+  'http client': ['axios', 'got', 'node-fetch', 'superagent', 'request', 'ky', 'undici'],
+  'test runner': ['jest', 'mocha', 'vitest', 'ava', 'tape', 'jasmine', 'uvu', 'qunit'],
   bundler: ['webpack', 'rollup', 'esbuild', 'parcel', 'vite'],
-  validation: ['joi', 'yup', 'zod', 'ajv', 'superstruct'],
+  validation: ['joi', 'yup', 'zod', 'ajv', 'superstruct', 'valibot', 'io-ts', 'class-validator', 'runtypes'],
+  logger: ['winston', 'pino', 'bunyan', 'log4js', 'loglevel', 'signale', 'consola'],
 };
 
 const SRC_EXT = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx']);
@@ -158,8 +166,9 @@ function audit(root) {
     if (!swap) continue;
     if (floor !== null && floor < swap.sinceNode) continue; // their runtime floor predates the native API
     const verify = floor === null ? ` (verify your runtime is Node >= ${swap.sinceNode})` : '';
+    const note = swap.note ? ` — ${swap.note}` : '';
     add('warning', 'native', `native equivalent available: ${name}`,
-      `the platform already covers this${verify}`,
+      `the platform already covers this${verify}${note}`,
       `replace ${name} with ${swap.to}`, lock ? `package.json (lockfile: ${lock})` : 'package.json');
   }
 

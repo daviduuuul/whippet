@@ -68,6 +68,13 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   dedup (the advisory re-fired on every edit). Claude Code emits separator-free UUIDs so it
   didn't bite in practice, but a hook should never let an input field escape its dir — the id is
   now reduced to a basename-safe token.
+- **deps-audit: wider native-equivalent allowlist + a `logger` duplicate group.** Added safe
+  single-purpose swaps (`rfdc`/`clone-deep`→`structuredClone`, `abort-controller`→`AbortController`,
+  `text-encoding`→`TextEncoder`, `is-array`→`Array.isArray`, `object-keys`→`Object.keys`), a new
+  `logger` pick-one group, and members to existing groups (`undici`, `@js-temporal/polyfill`, `uvu`,
+  `qunit`, `valibot`/`io-ts`/`class-validator`/`runtypes`). Honesty notes on caveated swaps
+  (`uuid`→`randomUUID` is v4-only; `is-number` drops numeric-string acceptance). All engine-gated;
+  conservative — bundlers stay out (vite/tsup *wrap* esbuild/rollup, a composition not a duplicate).
 
 ## [2.0.1] — 2026-06-21
 
