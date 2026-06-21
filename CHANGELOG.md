@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **deps-audit reads a full-semver `engines.node` floor correctly.** A floor like
+  `">=20.10.0"` was parsed as `min(20, 10, 0) = 0`, so the engine gate treated the
+  project as running an ancient Node and silenced every native-equivalent finding.
+  `parseNodeMin` now takes the major of each version token (`">=20.10.0"` → Node 20),
+  restoring the `uuid`/`node-fetch`/`rimraf`/… advisories on the common semver form.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance
