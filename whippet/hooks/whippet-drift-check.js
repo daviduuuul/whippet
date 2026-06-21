@@ -5,6 +5,8 @@
 const fs = require('fs');
 const { evaluateDrift, statePath, writeState } = require('./whippet-drift-core');
 
+// How many code edits pile up in a wave before a doc-drift advisory fires. Tune with
+// WHIPPET_DRIFT_THRESHOLD (a positive integer); default 3, and any junk value falls back to 3.
 function threshold() {
   const raw = process.env.WHIPPET_DRIFT_THRESHOLD;
   if (raw === undefined) return 3;

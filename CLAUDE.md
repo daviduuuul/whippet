@@ -12,9 +12,9 @@ wrapper + dev tooling. Don't edit plugin files expecting repo tooling to live be
 - `whippet/` — the plugin (`source: ./whippet`)
   - `.claude-plugin/plugin.json` — plugin manifest
   - `skills/whippet/SKILL.md` — the discipline itself (**the product**)
-  - `commands/` — `/whippet-review`, `/whippet-simplify`, `/whippet-ledger`, `/whippet-config`
+  - `commands/` — `/whippet-review`, `/whippet-simplify`, `/whippet-ledger`, `/whippet-config`, `/whippet-deps`
   - `hooks/` — plugin runtime hooks (`hooks.json`, `whippet-*.js`) + `selftest.js`
-  - `scripts/` — `config-audit.js` (the config-doctor engine, invoked by `/whippet-config`) + `config-audit.test.js`
+  - `scripts/` — deterministic engines + their `*.test.js`: `config-audit.js` (`/whippet-config`), `deps-audit.js` (`/whippet-deps`), `marker.js` (the `// whippet: … | until: …` parser, shared by ledger/review/check), `check.js` (the `whippet check` pre-commit/CI gate)
 - `.claude-plugin/marketplace.json` — marketplace entry
 - `scripts/` — dev tooling: `bump.js`, `check-manifests.js`, `bench-report.js`, `on-edit.js`
 - `benchmarks/` — A/B harness, fixtures, `METHODOLOGY.md`
@@ -72,14 +72,23 @@ manifests — `npm run bump` moves it, never hand-edit.
 ## Scope discipline (this repo, of all repos)
 
 Whippet's value is a **narrow** scope: leanness where it pays — *the least that actually works,
-and nothing left rotting in place*. Two fronts, one discipline:
+and nothing left rotting in place*. Three fronts, one discipline:
 - **Lean code output + terse reporting** — the original product (skill + `/whippet-review` /
   `/whippet-simplify` / `/whippet-ledger`).
+- **Lean dependencies** — `/whippet-deps` audits `package.json` for what the platform/stdlib already
+  covers (native-equivalent packages, declared-but-unused, duplicate-purpose). Same detect-only,
+  deterministic, conservative discipline as the config doctor — it covers the gaps the lockfile can't.
 - **Lean setup** — `/whippet-config` audits the Claude Code config for drift (dead plugin/hook/MCP
   references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files —
   across `settings.json` and `settings.local.json`), so the setup stays as lean and un-rotted as the
   code. Detect-only; deterministic; no `$schema` work
   it already does — it covers the *gaps* the schema can't (referents and runtime).
+
+The deterministic checks (deps, config, the `// whippet:` marker rule) are also composable as
+**`whippet check`** — an exit-coded pre-commit/CI gate (`scripts/check.js`), the mechanizable subset
+of the lean-code front hoisted out of the LLM commands. It composes the existing `audit()` functions,
+never reimplements them; markers/budget scope to the staged diff. Keep it to *aggregating whippet's own
+deterministic audits + a diff budget* — not a linter/formatter/test-runner.
 
 Still **out of scope**: planning, orchestration, general context-engineering — anything that
 doesn't serve leanness. New behavior ships with a runnable check (`selftest.js` or

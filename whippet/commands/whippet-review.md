@@ -13,13 +13,16 @@ given, else the working diff.
    dependency, premature abstraction, needless indirection), **diagnose-only** here,
    naming the existing symbol when something is reinvented. Plus the checks that are
    review's own:
-   - **`whippet:` without a ceiling:** a shortcut comment naming no upgrade path.
+   - **`whippet:` without a ceiling:** run `node "${CLAUDE_PLUGIN_ROOT}/scripts/marker.js"
+     <changed files> --json` and flag every `bare:true` — a shortcut naming no `until:` upgrade path.
    - **Missing check:** non-trivial logic with no runnable check left behind.
    - **Oversized batch:** a hunk mixing unrelated changes, or a diff too large to
      review in one pass — flag the split (one logical, revertible change per
      commit). Big batches are where AI-written bugs slip past review.
    - **Over-cut (the other failure):** error handling, validation, security, or
      disposal removed to shrink the diff — flag as a regression, not a win.
-3. Do **not** rewrite anything. Output a short list, most-impactful first:
-   `file:line — issue — leaner fix (one line)`. End with a one-line verdict
-   (ship as-is / trim first). No essay.
+3. Do **not** rewrite anything. Group findings by severity (errors first), most-
+   impactful first within each: `file:line — issue — leaner fix (one line)`. End
+   with a one-line verdict (ship as-is / trim first). No essay. With `--json` in
+   `$ARGUMENTS`, output only a JSON array `[{ "severity": "error|warning|info",
+   "file", "line", "issue", "fix" }]` and nothing else — for piping into a gate.

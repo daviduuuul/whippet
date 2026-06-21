@@ -2,6 +2,47 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [1.6.0] — 2026-06-21
+
+### Added
+- **`/whippet-deps`** — a deterministic dependency-leanness auditor, the third pillar
+  beside `/whippet-config`. Flags a package the platform/stdlib already covers (curated
+  1:1 allowlist, **engine-gated** so it never suggests a swap your Node floor is too old
+  for), a declared-but-unused dependency (import-shaped scan + 5 escape hatches, `info`
+  + *verify*), and duplicate-purpose libraries. Read-only, conservative (under-reports
+  rather than cry wolf), 24 scenarios.
+- **`whippet check`** — a deterministic pre-commit/CI gate (`whippet/scripts/check.js`),
+  no LLM. Composes the deps audit + a bare-marker check + a staged-diff budget (and
+  `/whippet-config`, opt-in), exits non-zero on a real finding **and on its own crash**
+  (a gate that goes green from a bug is the worst failure). Scopes markers/budget to the
+  staged diff or `--range <ref>`; `--strict`/`--json`. 11 scenarios on real temp git repos.
+- **Structured `// whippet:` markers** — `| until: <condition>` names the ceiling, so
+  `/whippet-ledger` and `/whippet-review` classify tracked-vs-bare **deterministically**
+  (`whippet/scripts/marker.js`, the shared parser). Backward-compatible: free-form markers
+  still parse as bare, and `git grep "whippet:"` still finds every one.
+- **Model-tier benchmark sweep — tooling + pre-registration** (results pending). A
+  per-model split in `bench-report.js` (gated on >1 model, so the single-model scoreboard
+  is byte-identical until rows exist), a reproducible runner `scripts/bench-sweep.js`
+  (offline `selftest` asserts the 48-cell / 384-run matrix), two harder private fixtures,
+  and a pre-registered protocol ([`results/2026-06-21-model-sweep.md`](benchmarks/results/2026-06-21-model-sweep.md)).
+  The Opus-only A/B is the leanest case; the sweep tests whether the discipline's edge over
+  a one-liner grows on cheaper models. **No measured cross-model claim until it runs.**
+
+### Changed
+- `/whippet-config`: three new false-positive-safe checks — an invalid hook `timeout`
+  (≤0 / non-integer; absent stays fine), a rule present in both `allow` and `deny` (deny
+  wins, the allow is dead), an MCP server declaring both `command` and `url`. 96 scenarios.
+- `/whippet-review` + `/whippet-simplify`: per-severity output + a `--json` mode, so a
+  review can pipe into a gate.
+- README / CLAUDE.md / plugin.json reframed around **four** tools + the gate. Honesty
+  section now states the A/B measures size / dependencies / correctness only (the
+  qualitative calls stay unmeasured) and that the one-liner tie is on the leanest model.
+
+### Fixed
+- `scripts/judge.js` is marked explicitly as un-run scaffolding (zero observations → no
+  qualitative claim). `WHIPPET_DRIFT_THRESHOLD`'s default (3) is now self-documented in
+  the hook.
+
 ## [1.5.3] — 2026-06-21
 
 ### Fixed

@@ -77,7 +77,7 @@ const LADDER =
 const GUARDS =
 `Some places are never where you save lines: validating input where untrusted data enters, error handling that prevents data loss, security, accessibility, releasing resources. Security primitives (password hashing, crypto, auth) take a vetted library — never hand-rolled; rung 4's "native before a library" does NOT apply here.
 Logic that can actually break ships with the one check that catches it breaking, committed next to the code — not run once and thrown away.
-Leave the tree clean: no scratch files, no commented-out code, no half-applied edits; match the structure already there. Tag an intentional shortcut // whippet: with its limit and what should trigger the rework.
+Leave the tree clean: no scratch files, no commented-out code, no half-applied edits; match the structure already there. Tag an intentional shortcut // whippet: <shortcut> | until: <condition> — name the limit and what should trigger the rework.
 Lean is the artifact, not the effort: build the full thing when the problem needs it, and never drop to a weaker model or shallower reasoning to look minimal.`;
 
 const REPORTING =

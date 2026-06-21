@@ -32,6 +32,7 @@ check('payload keeps native-before-library', payload.includes('Native before a l
 check('payload keeps the security carve-out', payload.includes('never hand-rolled'));
 check('payload keeps the runnable-check guard', payload.includes('the one check that catches it breaking'));
 check('payload keeps the // whippet: marker rule', payload.includes('// whippet:'));
+check('payload teaches the until: ceiling syntax', payload.includes('until:'));
 c.setMode('ultra');
 check('setMode persists ultra', c.readMode() === 'ultra');
 check('reminder reflects mode', c.buildReminder('ultra').includes('ultra'));

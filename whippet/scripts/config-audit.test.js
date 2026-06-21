@@ -475,6 +475,28 @@ ck('version match -> no out-of-date finding',
   ck('O5 unknown event in settings.local.json -> error', hasFinding(r, 'hooks', 'unknown hook event: BadEvent'));
 }
 
+/* ---------------- P. additive checks (timeout / allow+deny / mcp shape) ---------------- */
+{ // hook timeout <= 0 -> warning
+  const root = tmp(); const cfg = path.join(root, '.claude');
+  const hk = withReal(cfg, path.join('hooks', 'h.js'));
+  writeJSON(path.join(cfg, 'settings.json'), { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: `node "${hk}"`, timeout: 0 }] }] } });
+  ck('P1 hook timeout 0 -> warning', hasFinding(audit(cfg), 'hooks', 'invalid hook timeout: PreToolUse'));
+}
+{ // valid positive-integer timeout -> clean
+  const root = tmp(); const cfg = path.join(root, '.claude');
+  const hk = withReal(cfg, path.join('hooks', 'h.js'));
+  writeJSON(path.join(cfg, 'settings.json'), { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: `node "${hk}"`, timeout: 5 }] }] } });
+  ck('P2 hook timeout 5 -> no finding', count(audit(cfg), 'hooks') === 0);
+}
+{ // same rule in allow and deny -> warning (deny wins)
+  const r = run({ settings: { permissions: { allow: ['Bash(rm *)'], deny: ['Bash(rm *)'] } } });
+  ck('P3 rule in allow+deny -> warning', hasFinding(r, 'permissions', 'rule in both allow and deny: Bash(rm *)'));
+}
+{ // MCP server with both command and url -> warning
+  const r = run(mcpFix({ mcpServers: { x: { command: 'npx foo', url: 'http://a' } } }));
+  ck('P4 MCP command+url -> warning', hasFinding(r, 'mcp', 'MCP server has both command and url: x'));
+}
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);

@@ -88,8 +88,8 @@ No unrequested abstractions (no interface with one impl, no config for a
 constant). Deletion over addition; fewest files; shortest working diff. Small,
 revertible batches — one logical change at a time. Clean up your scratch (a
 gitignored `tmp/`, never the repo root); no commented-out code, no half-applied
-edits. Tag intentional corners `// whippet:` with the limit and what should
-trigger the rework.
+edits. Tag intentional corners `// whippet: <shortcut> | until: <condition>` — name the
+limit and what should trigger the rework.
 
 ## Report — terse by construction
 
