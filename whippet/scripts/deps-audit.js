@@ -80,10 +80,17 @@ const CONFIG_RE = /^(\.eslintrc|eslint\.config|\.prettierrc|prettier\.config|\.b
 // or null if unstated. Conservative: take the minimum major mentioned.
 function parseNodeMin(spec) {
   if (typeof spec !== 'string') return null;
-  // major of each version token (parseInt stops at the first dot) — a minor/patch
-  // must not drag the floor down (">=20.10.0" is Node 20, not min(20,10,0)=0).
-  const majors = (spec.match(/\d+(?:\.\d+)*/g) || []).map(v => parseInt(v, 10));
-  return majors.length ? Math.min(...majors) : null;
+  // 1) drop SemVer prerelease/build tails so a trailing "-rc.1" / "-0" / "+build" can't
+  //    contribute a phantom low major (">=22.0.0-rc.1" is Node 22, not 1).
+  const clean = spec.replace(/[-+][0-9A-Za-z.-]+/g, ' ');
+  // 2) an upper bound is a ceiling, not a floor: strip "<" / "<=" tokens before scanning.
+  const hadUpper = /<=?\s*\d/.test(clean);
+  const lowerOnly = clean.replace(/<=?\s*\d+(?:\.\d+)*/g, ' ');
+  // major of each remaining (lower-bound) token; minor/patch must not drag the floor down.
+  const majors = (lowerOnly.match(/\d+(?:\.\d+)*/g) || []).map(v => parseInt(v, 10));
+  if (majors.length) return Math.min(...majors);
+  if (hadUpper) return 0;   // only an upper bound -> the spec allows arbitrarily old Node
+  return null;              // no version info at all -> floor unknown
 }
 
 // Comment-stripped concatenation of all source files (for import-shaped matching),

@@ -29,6 +29,9 @@ eq('case + spacing normalized', parseMarker('//   WHIPPET:  foo  |  UNTIL:  bar'
 eq('pipe in shortcut without until stays bare', parseMarker('// whippet: a | b'), { shortcut: 'a | b', until: null, bare: true });
 ck('no marker -> null', parseMarker('const s = "no marker here"') === null);
 ck('word-boundary: notwhippet: -> null', parseMarker('const notwhippet: 1') === null);
+ck('trailing CR does not defeat the marker', JSON.stringify(parseMarker('// whippet: x | until: y' + String.fromCharCode(13))) === JSON.stringify({ shortcut: 'x', until: 'y', bare: false }));
+ck('prose mentioning whippet: is not a marker (needs a comment lead)', parseMarker('the whippet: convention is great') === null && parseMarker('see whippet: foo for details') === null);
+ck('double-comment lead still matches (;; lisp)', parseMarker(';; whippet: lisp') !== null);
 ck('non-string -> null', parseMarker(42) === null && parseMarker(null) === null && parseMarker(undefined) === null);
 
 { // scanMarkers: line numbers + classification across a file

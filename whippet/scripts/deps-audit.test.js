@@ -107,6 +107,14 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r22 = run({ pkg: { dependencies: { 'cross-fetch': '^4' }, engines: { node: '>=22' } }, files: { 'index.js': "require('cross-fetch')" } });
   ck('N16 cross-fetch gated below Node 21, flagged on Node 22', count(r20, 'native') === 0 && hasFinding(r22, 'native', 'native equivalent available: cross-fetch'));
 }
+{ // N17 upper-bound-only engine ("<18") -> ancient floor (0) -> recent natives suppressed (no FP)
+  const r = run({ pkg: { dependencies: { rfdc: '^1' }, engines: { node: '<18' } }, files: { 'index.js': "require('rfdc')" } });
+  ck('N17 rfdc on engines "<18" -> no finding (floor 0)', count(r, 'native') === 0);
+}
+{ // N18 prerelease engine (">=22.0.0-rc.1") still recognized as Node 22 -> flagged (no FN)
+  const r = run({ pkg: { dependencies: { 'node-fetch': '^3' }, engines: { node: '>=22.0.0-rc.1' } }, files: { 'index.js': "require('node-fetch')" } });
+  ck('N18 node-fetch on ">=22.0.0-rc.1" -> native finding', hasFinding(r, 'native', 'native equivalent available: node-fetch'));
+}
 
 /* ---------------- unused ---------------- */
 { // U1 declared but never imported -> info
@@ -189,6 +197,8 @@ ck('parseNodeMin ^20', parseNodeMin('^20') === 20);
 ck('parseNodeMin range takes floor', parseNodeMin('18 || 20') === 18 && parseNodeMin('>=18 <21') === 18);
 ck('parseNodeMin unknown -> null', parseNodeMin(undefined) === null && parseNodeMin('x') === null);
 ck('parseNodeMin full semver -> major (minor/patch must not lower the floor)', parseNodeMin('>=18.12.0') === 18 && parseNodeMin('>=20.10.0') === 20 && parseNodeMin('^18.18.0 || >=20.10.0') === 18);
+ck('parseNodeMin ignores prerelease/build tails', parseNodeMin('>=22.0.0-rc.1') === 22 && parseNodeMin('^18.0.0-0') === 18 && parseNodeMin('>=20.0.0+build.5') === 20);
+ck('parseNodeMin upper-bound only -> 0; range keeps low end', parseNodeMin('<18') === 0 && parseNodeMin('<=16') === 0 && parseNodeMin('>=14 <18') === 14);
 
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 

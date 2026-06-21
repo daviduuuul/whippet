@@ -101,6 +101,35 @@ function ck(name, cond) { if (cond) pass++; else { fail++; fails.push(name); } c
   ck('11 config broken hook -> exit 1', r.status === 1 && /hook script missing/.test(r.stdout));
 }
 
+{ // 12. markers read the STAGED blob, not the worktree (partial staging)
+  const d = gitRepo();
+  write(d, 'foo.js', '// whippet: hack');
+  sh('git', ['add', 'foo.js'], d);
+  write(d, 'foo.js', 'const x = 1;'); // worktree no longer has the marker; the staged blob still does
+  const r = cli(d, ['--staged']);
+  ck('12 staged marker flagged even when worktree edited it away', r.status === 1 && /bare whippet/.test(r.stdout));
+}
+{ // 13. --range new dependency uses worktree-vs-ref (matches the diff baseline)
+  const d = gitRepo();
+  write(d, 'package.json', '{"name":"x","version":"1.0.0","dependencies":{}}');
+  sh('git', ['add', '.'], d); sh('git', ['commit', '-qm', 'init'], d);
+  write(d, 'package.json', '{"name":"x","version":"1.0.0","dependencies":{"range-lib":"^1"}}'); // worktree only
+  const r = cli(d, ['--range', 'HEAD', '--budget', '1000']);
+  ck('13 --range new dep (worktree vs ref) -> flagged', /new dependency added: range-lib/.test(r.stdout));
+}
+{ // 14. --range with no value -> hard error, not a silent fall-back to --staged
+  const d = gitRepo();
+  write(d, 'foo.js', 'const x = 1;'); sh('git', ['add', '.'], d);
+  const r = cli(d, ['--range']);
+  ck('14 --range without a value -> exit 1', r.status === 1 && /--range needs a value/.test(r.stderr));
+}
+{ // 15. --range followed by a flag is not read as the ref
+  const d = gitRepo();
+  write(d, 'foo.js', 'const x = 1;'); sh('git', ['add', '.'], d);
+  const r = cli(d, ['--range', '--strict']);
+  ck('15 --range --strict -> exit 1 (flag not used as value)', r.status === 1 && /--range needs a value/.test(r.stderr));
+}
+
 for (const dir of CLEANUP) { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} check scenarios passed`);
