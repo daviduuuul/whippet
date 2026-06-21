@@ -2,6 +2,59 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **deps-audit reads a full-semver `engines.node` floor correctly.** A floor like
+  `">=20.10.0"` was parsed as `min(20, 10, 0) = 0`, so the engine gate treated the
+  project as running an ancient Node and silenced every native-equivalent finding.
+  `parseNodeMin` now takes the major of each version token (`">=20.10.0"` → Node 20),
+  restoring the `uuid`/`node-fetch`/`rimraf`/… advisories on the common semver form.
+- **config-audit no longer flags a hook/statusLine glob argument as a missing script.**
+  `extractScriptPath` grabbed the first token ending in a script extension, so a valid
+  command like `prettier --write src/**/*.js` was read as the script path `src/**/*.js`,
+  which can't resolve to a file → a false `error` finding that also flipped `whippet
+  check`'s exit code. Glob metacharacters (`*`, `?`) now disqualify a token the same way
+  `${VAR}`/`%VAR%` already did — a glob is never a single literal file to look for.
+- **config-audit no longer flags a documented MCP wildcard permission rule as malformed.**
+  `mcp__server__*` and `mcp__server__get_*` (valid, documented allow/deny rules that match
+  a whole MCP server or a tool prefix) carry a `*` outside parentheses, so the rule regex
+  rejected them as "malformed permission rule" — a false positive on a config shape any
+  MCP-heavy setup uses. The regex now accepts a server-anchored trailing wildcard; a bare
+  unanchored `mcp__*` stays flagged, matching Claude Code's own behavior.
+- **config-audit version-drift compares versions numerically, not as strings.** The
+  directory-marketplace check used `installed !== source`, so it labeled a plugin whose
+  installed version is *ahead* of the source (a local dev build) as "plugin out of date —
+  run /plugin update" (which would downgrade it), and the string compare even ordered
+  `1.10.0` vs `1.9.0` backwards. It now flags only when the installed version is genuinely
+  behind the source.
+- **marker.js splits on every line-ending form.** `scanMarkers` split on `/\r?\n/`, so a
+  file using lone-CR line endings (no LF) kept the `\r` embedded in each "line"; the marker
+  regex (`.` doesn't match `\r`, `$` without `/m`) then matched nothing and every
+  `// whippet:` marker went undetected. Now splits on `\r\n | \r | \n`, so markers are found
+  whatever the line-ending style.
+- **deps-audit no longer reports "possibly unused" from a partial scan.** `collectSources`
+  caps the source walk at depth 12 / 5000 files; if a dependency's only import sat past the
+  cap, the dep read as unused — a false positive from files the auditor never opened. The
+  scan now records when it was truncated, and the unused check stays silent on a partial read
+  (consistent with its existing "silent when no sources" behavior). The native-equivalent and
+  duplicate-purpose checks, which don't depend on the source scan, are unaffected.
+### Changed
+- **Model-tier sweep — results in** (`benchmarks/results/2026-06-21-model-sweep.md`, raw
+  rows in `runs.jsonl`). The pre-registered sweep ran: 459 observations, 3 models × 3 arms
+  × 7 fixtures, n=8. Outcome: the **null** — `whippet` ties the one-line `baseline` on
+  Haiku, Sonnet *and* Opus (correctness and diff size); the only robust effect is that an
+  un-nudged agent writes more code, **largest on the strongest model** (the reverse of the
+  "cheaper models benefit more" hypothesis). Confirms the README's convenience-wrapper
+  positioning and closes the "only tested the strongest model" objection. No README change
+  (it stays minimal); the measured claim lives in the results file, not the shop window.
+- **Hook state file: `session_id` is sanitized before it becomes a path.** `sessionStatePath`
+  interpolated `session_id` straight into the state-file name, so a value with a path separator
+  (`/`, `\`, `..`) could write the file outside the config dir and permanently break per-session
+  dedup (the advisory re-fired on every edit). Claude Code emits separator-free UUIDs so it
+  didn't bite in practice, but a hook should never let an input field escape its dir — the id is
+  now reduced to a basename-safe token.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance

@@ -1,1 +1,5 @@
 * text=auto eol=lf
+
+# CHANGELOG entries only ever append under [Unreleased]; union-merge avoids a
+# conflict every time two branches each add a line there.
+CHANGELOG.md merge=union

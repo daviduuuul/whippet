@@ -43,6 +43,10 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { 'node-fetch': '^3' } }, files: { 'index.js': "require('node-fetch')" } });
   ck('N3 node-fetch unknown engine -> native finding', hasFinding(r, 'native', 'native equivalent available: node-fetch'));
 }
+{ // N4 full-semver engine floor (major.minor.patch) must keep the major, not collapse to 0 -> still flagged
+  const r = run({ pkg: { dependencies: { uuid: '^9' }, engines: { node: '>=20.10.0' } }, files: { 'index.js': "require('uuid')" } });
+  ck('N4 uuid on Node >=20.10.0 -> native finding', hasFinding(r, 'native', 'native equivalent available: uuid'));
+}
 { // C1 conservative: multi-purpose lib NOT flagged
   const r = run({ pkg: { dependencies: { lodash: '^4' } }, files: { 'index.js': "require('lodash')" } });
   ck('C1 lodash -> no native finding', count(r, 'native') === 0);
@@ -76,6 +80,11 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
 { // U7 zero source files -> unused check stays silent
   const r = run({ pkg: { dependencies: { chalk: '^5' } }, files: {} });
   ck('U7 no sources -> no unused', count(r, 'unused') === 0);
+}
+{ // U8 the only import is past the depth cap -> scan is partial -> no false 'unused'
+  const deep = Array.from({ length: 13 }, (_, i) => `lvl${i}`).join('/') + '/feature.js';
+  const r = run({ pkg: { dependencies: { deepdep: '^1' } }, files: { 'index.js': 'const x = 1', [deep]: "require('deepdep')" } });
+  ck('U8 import past depth cap -> no false unused', count(r, 'unused') === 0);
 }
 
 /* ---------------- duplicate-purpose ---------------- */
@@ -111,6 +120,7 @@ ck('parseNodeMin >=22', parseNodeMin('>=22') === 22);
 ck('parseNodeMin ^20', parseNodeMin('^20') === 20);
 ck('parseNodeMin range takes floor', parseNodeMin('18 || 20') === 18 && parseNodeMin('>=18 <21') === 18);
 ck('parseNodeMin unknown -> null', parseNodeMin(undefined) === null && parseNodeMin('x') === null);
+ck('parseNodeMin full semver -> major (minor/patch must not lower the floor)', parseNodeMin('>=18.12.0') === 18 && parseNodeMin('>=20.10.0') === 20 && parseNodeMin('^18.18.0 || >=20.10.0') === 18);
 
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 

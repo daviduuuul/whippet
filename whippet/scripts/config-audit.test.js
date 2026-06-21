@@ -246,20 +246,29 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   ck('D4 statusLine inline -> no finding', count(r, 'statusline') === 0);
 }
 
-/* ---------------- E. stale backups ---------------- */
-{ // E1 backups with entries -> info each
+/* ---------------- E. stale backups (loose in the config-dir root) ---------------- */
+{ // E1 backup files loose in the ROOT -> ONE aggregated info (not one per file)
   const r = run({ settings: {}, extra: (cfg) => {
-    fs.mkdirSync(path.join(cfg, 'backups', 'one.removed'), { recursive: true });
-    fs.mkdirSync(path.join(cfg, 'backups', 'two.bak'), { recursive: true });
+    fs.writeFileSync(path.join(cfg, 'settings.json.bak.20260101'), '{}');
+    fs.writeFileSync(path.join(cfg, '.claude.json.backup.123'), '{}');
+    fs.writeFileSync(path.join(cfg, 'CLAUDE.md.bak'), 'x');
   } });
-  ck('E1 backups -> info per entry', count(r, 'stale') === 2);
+  ck('E1 loose root backups -> one aggregated finding', count(r, 'stale') === 1 && hasFinding(r, 'stale', '3 backup file'));
 }
-{ // E2 no backups dir -> no finding
-  ck('E2 no backups dir -> no finding', count(run({ settings: {} }), 'stale') === 0);
+{ // E2 no backups -> no finding
+  ck('E2 no backups -> no finding', count(run({ settings: {} }), 'stale') === 0);
 }
-{ // E3 empty backups dir -> no finding
-  const r = run({ settings: {}, extra: (cfg) => fs.mkdirSync(path.join(cfg, 'backups'), { recursive: true }) });
-  ck('E3 empty backups dir -> no finding', count(r, 'stale') === 0);
+{ // E3 a DEDICATED backups/ subdir is good hygiene -> NOT flagged (the bug we fixed)
+  const r = run({ settings: {}, extra: (cfg) => {
+    fs.mkdirSync(path.join(cfg, 'backups'), { recursive: true });
+    fs.writeFileSync(path.join(cfg, 'backups', 'settings.json.bak.1'), '{}');
+    fs.writeFileSync(path.join(cfg, 'backups', 'memory.jsonl.bak.2'), '{}');
+  } });
+  ck('E3 dedicated backups/ dir -> no finding', count(r, 'stale') === 0);
+}
+{ // E4 a data archive (not a backup) -> not flagged
+  const r = run({ settings: {}, extra: (cfg) => fs.writeFileSync(path.join(cfg, 'session-handoff-archive.jsonl'), '{}') });
+  ck('E4 data archive not flagged as a backup', count(r, 'stale') === 0);
 }
 
 /* ---------------- F. robustness ---------------- */
@@ -287,6 +296,11 @@ ck('G1 quoted .ps1', extractScriptPath('pwsh -File "C:\\a\\b.ps1"') === 'C:\\a\\
 ck('G2 node x.mjs dev', extractScriptPath('node.exe /x/y.mjs dev') === '/x/y.mjs');
 ck('G3 no script -> null', extractScriptPath('echo hello world') === null);
 ck('G4 non-string -> null', extractScriptPath(undefined) === null);
+ck('G5 glob arg is not a script -> null', extractScriptPath('prettier --write src/**/*.js') === null && extractScriptPath('eslint "src/**/*.js" --fix') === null);
+{ // G6 end-to-end: a hook running a formatter over a glob is valid, not a missing script
+  const r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Write|Edit', hooks: [{ type: 'command', command: 'prettier --write src/**/*.js' }] }] } } });
+  ck('G6 hook glob arg -> no false missing-script', count(r, 'hooks') === 0);
+}
 
 /* ---------------- K. duplicate local component vs plugin (#13) ---------------- */
 // fabricate an installed plugin under cfg; returns its installPath
@@ -388,6 +402,12 @@ ck('C7 ${CLAUDE_PLUGIN_ROOT} hook -> no finding',
 // #1 dotted / glob / mcp permission rules are valid
 ck('M6 dotted/glob/mcp rules -> clean',
   count(run({ settings: { permissions: { allow: ['vendor.tool', 'Bash(*.sh)', 'mcp__a__b'] } } }), 'permissions') === 0);
+// mcp server-wildcard rules are documented & valid (mcp__server__*, mcp__server__get_*)
+ck('M7 mcp server-wildcard rules -> clean',
+  count(run({ settings: { permissions: { allow: ['mcp__memory__*', 'mcp__github__get_*'] } } }), 'permissions') === 0);
+// but a bare unanchored mcp__* (which Claude Code itself rejects) stays flagged
+ck('M8 bare mcp__* still flagged',
+  hasFinding(run({ settings: { permissions: { allow: ['mcp__*'] } } }), 'permissions', 'malformed permission rule: allow'));
 // #2 flat-shape marketplace must still be checked
 ck('B6 flat marketplace path missing -> error',
   hasFinding(run({ settings: { extraKnownMarketplaces: { flat: { source: 'directory', path: path.join(os.tmpdir(), 'no-flat-mk-xyz') } } } }), 'marketplace', 'local marketplace path missing: flat'));
@@ -432,6 +452,8 @@ ck('version drift: installed behind source -> warning',
   hasFinding(mkWithSourceVersion('2.0.0', '1.0.0'), 'marketplace', 'plugin out of date: foo@mymk'));
 ck('version match -> no out-of-date finding',
   !hasFinding(mkWithSourceVersion('2.0.0', '2.0.0'), 'marketplace', 'plugin out of date'));
+ck('version drift: installed ahead of source -> no false out-of-date (numeric compare, not string)',
+  !hasFinding(mkWithSourceVersion('1.9.0', '1.10.0'), 'marketplace', 'plugin out of date'));
 
 /* ---------------- relative script paths resolve against configDir (no false positive) ---------------- */
 { // C8 relative hook path that exists under configDir -> NOT flagged

@@ -66,7 +66,9 @@ const CONFIG_RE = /^(\.eslintrc|eslint\.config|\.prettierrc|prettier\.config|\.b
 // or null if unstated. Conservative: take the minimum major mentioned.
 function parseNodeMin(spec) {
   if (typeof spec !== 'string') return null;
-  const majors = (spec.match(/\d+/g) || []).map(Number);
+  // major of each version token (parseInt stops at the first dot) — a minor/patch
+  // must not drag the floor down (">=20.10.0" is Node 20, not min(20,10,0)=0).
+  const majors = (spec.match(/\d+(?:\.\d+)*/g) || []).map(v => parseInt(v, 10));
   return majors.length ? Math.min(...majors) : null;
 }
 
@@ -76,10 +78,11 @@ function collectSources(root) {
   const stripped = [];
   const raw = [];
   let budget = 5000;
+  let truncated = false; // a depth/budget cap stopped the walk -> the read is partial
   const walk = (dir, depth) => {
-    if (depth > 12 || budget <= 0) return;
+    if (depth > 12 || budget <= 0) { truncated = true; return; }
     for (const ent of safeReaddir(dir)) {
-      if (budget <= 0) break;
+      if (budget <= 0) { truncated = true; break; }
       if (ent.isDirectory()) { if (!SKIP_DIR.has(ent.name)) walk(path.join(dir, ent.name), depth + 1); continue; }
       if (!SRC_EXT.has(path.extname(ent.name))) continue;
       budget--;
@@ -89,7 +92,7 @@ function collectSources(root) {
     }
   };
   walk(root, 0);
-  return { count: raw.length, raw: raw.join('\n'), code: stripped.join('\n') };
+  return { count: raw.length, raw: raw.join('\n'), code: stripped.join('\n'), truncated };
 }
 
 function readConfigText(root) {
@@ -162,7 +165,8 @@ function audit(root) {
 
   // 2. declared-but-unused (dependencies only; info + "verify"; silent if no sources)
   const src = collectSources(root);
-  if (src.count > 0) {
+  // a truncated (partial) scan can't claim "unused" — the import may be in an unread file
+  if (src.count > 0 && !src.truncated) {
     const cfg = readConfigText(root);
     const meta = JSON.stringify([pkg.scripts, pkg.bin, pkg.main, pkg.exports]);
     const peerOpt = { ...(asObj(pkg.peerDependencies) || {}), ...(asObj(pkg.optionalDependencies) || {}) };

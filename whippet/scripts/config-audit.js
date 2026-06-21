@@ -42,8 +42,9 @@ function extractScriptPath(cmd) {
   const q = cmd.match(/"([^"]+\.(?:ps1|mjs|cjs|js|py|sh))"/i);
   const sp = q ? q[1] : (cmd.match(/(\S+\.(?:ps1|mjs|cjs|js|py|sh))(?:\s|$)/i) || [])[1];
   if (!sp) return null;
-  // runtime-resolved paths (${CLAUDE_PLUGIN_ROOT}, %VAR%) can't be checked statically
-  if (/[$%]/.test(sp)) return null;
+  // can't be checked statically: a runtime-resolved path (${CLAUDE_PLUGIN_ROOT}, %VAR%)
+  // or a glob argument (e.g. a formatter over src/**/*.js — never a single literal file)
+  if (/[$%*?]/.test(sp)) return null;
   return sp;
 }
 
@@ -96,9 +97,22 @@ function frontmatterKeys(filePath) {
   return keys;
 }
 
+// Compare dotted version strings numerically (1.10 > 1.9, which a string compare
+// gets backwards). Missing / non-numeric parts count as 0. Returns <0 / 0 / >0.
+function cmpSemver(a, b) {
+  const pa = String(a).split('.'), pb = String(b).split('.');
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (parseInt(pa[i], 10) || 0) - (parseInt(pb[i], 10) || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
 // A permission rule is `ToolName` optionally followed by `(pattern)`. Tool names
-// can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool).
-const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\(.*\))?$/;
+// can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool). MCP
+// rules also take a documented trailing wildcard (mcp__server__*, mcp__server__get_*);
+// a bare unanchored mcp__* stays rejected, matching Claude Code's own behavior.
+const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\(.*\))?$|^mcp__[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]*\*$/;
 
 function audit(configDir) {
   const findings = [];
@@ -205,7 +219,7 @@ function audit(configDir) {
       const key = `${pl.name}@${name}`;
       const inst = installedPlugins[key];
       const iv = Array.isArray(inst) && inst[0] && inst[0].version;
-      if (iv && iv !== pl.version) {
+      if (iv && cmpSemver(iv, pl.version) < 0) {
         add('warning', 'marketplace', `plugin out of date: ${key}`,
           `installed ${iv}, but the local source is ${pl.version}`,
           'run /plugin update to sync the cache', key);
@@ -351,13 +365,16 @@ function audit(configDir) {
     }
   }
 
-  // 5. backups left inside the config dir (orphans / bloat)
-  const backupsDir = path.join(configDir, 'backups');
-  for (const ent of safeReaddir(backupsDir)) {
-    const full = path.join(backupsDir, ent);
-    add('info', 'stale', `backup inside config dir: ${ent}`,
-      'backups bloat the config dir and can carry a full .git history',
-      'move it out of the config dir or delete it', full);
+  // 5. backup files left loose in the config-dir ROOT (leftovers / bloat). A dedicated
+  //    backups/ subdir is good hygiene and is NOT flagged — only strays in the root,
+  //    aggregated into one finding. A data archive (e.g. *-archive.jsonl) is not a backup.
+  const BACKUP_RE = /\.(bak|backup|orig|old)(\.|$)|~$/i;
+  const strays = safeReaddir(configDir).filter((e) => BACKUP_RE.test(e));
+  if (strays.length) {
+    const shown = strays.slice(0, 3).join(', ') + (strays.length > 3 ? `, +${strays.length - 3} more` : '');
+    add('info', 'stale', `${strays.length} backup file(s) loose in the config dir`,
+      `leftovers in the config-dir root (${shown}) bloat it; a dedicated backups/ subdir keeps them tidy`,
+      'move them into a backups/ subdir, or delete them', 'config dir root');
   }
 
   // 6. local component (skill/agent/command) shadowing a plugin's
