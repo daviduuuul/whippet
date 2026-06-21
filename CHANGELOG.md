@@ -2,6 +2,15 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **marker.js splits on every line-ending form.** `scanMarkers` split on `/\r?\n/`, so a
+  file using lone-CR line endings (no LF) kept the `\r` embedded in each "line"; the marker
+  regex (`.` doesn't match `\r`, `$` without `/m`) then matched nothing and every
+  `// whippet:` marker went undetected. Now splits on `\r\n | \r | \n`, so markers are found
+  whatever the line-ending style.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance
