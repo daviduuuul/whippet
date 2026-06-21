@@ -64,12 +64,13 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
 
 ## README — keep it minimal (owner's standing instruction)
 
-The README is **only**: the current version badge + a short paragraph of what the
-plugin does + the install block. **Nothing else** — no benchmark tables, no command
-lists, no honesty essays, no examples. Keep it accurate (update the one paragraph if
-what the plugin does changes) and benchmark-true (no measured edge the A/B doesn't
-show). The version badge is one of the four synced manifests — `npm run bump` moves
-it, never hand-edit.
+The README is **only**: a centered header (logo + a small badge row + a one-line
+italic tagline) + a short paragraph of what the plugin does + the install block.
+That header is **visual polish, not content** — still **nothing else**: no benchmark
+tables, no command lists, no honesty essays, no examples. Keep it accurate (update the
+one paragraph if what the plugin does changes) and benchmark-true (no measured edge the
+A/B doesn't show). The version badge is one of the four synced manifests — `npm run bump`
+moves it, never hand-edit (`check-manifests.js` greps `version-<v>-` in the README).
 
 ## Privacy — never leak private things into the public repo (owner's standing instruction)
 
