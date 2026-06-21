@@ -549,6 +549,15 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   const r = run(mcpFix({ mcpServers: { x: { command: 'npx foo', url: 'http://a' } } }));
   ck('P4 MCP command+url -> warning', hasFinding(r, 'mcp', 'MCP server has both command and url: x'));
 }
+{ // P5 a bogus MCP type with no command/url is unlaunchable -> no-transport ERROR, not just the warning
+  const r = run(mcpFix({ mcpServers: { x: { type: 'websocket' } } }));
+  ck('P5 bogus type + no command/url -> no-transport error', hasFinding(r, 'mcp', 'MCP server has no transport: x'));
+}
+{ // P6 a permission rule whose () spec contains a newline is valid, not malformed
+  const nl = String.fromCharCode(10);
+  const r = run({ settings: { permissions: { allow: ['Bash(echo a' + nl + 'echo b)'] } } });
+  ck('P6 multi-line permission spec -> not malformed', count(r, 'permissions') === 0);
+}
 
 /* ---------------- Q. typo'd top-level settings key (valid JSON, silently ignored) ---------------- */
 { // Q1 dropped trailing 's' -> warning that points at the real key

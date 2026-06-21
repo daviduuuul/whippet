@@ -11,6 +11,20 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   `engines.node` is unknown, only suggest natives stable since Node <= 18; a recent swap
   (`parseArgs`/`withResolvers`/global `fetch`) is now suppressed instead of guessed at (was
   mis-flagging `minimist` on axios). Validated against the real package.json of 24 public repos.
+- **Pre-release review hardening of the deterministic engines.** An adversarial review surfaced and
+  fixed latent edge-case bugs, all toward the zero-false-positive / correctness contract:
+  - deps-audit `parseNodeMin` ignores SemVer prerelease/build tails (`>=22.0.0-rc.1` is Node 22,
+    not 1 — which had silenced *every* native advisory) and treats an upper-bound-only floor as 0
+    (engines `<18` no longer flags natives that need a newer Node).
+  - config-audit: an MCP server with an unknown `type` and no command/url now gets the
+    `no transport` error, not just a warning; a permission rule whose `(spec)` contains a newline
+    is no longer mis-flagged as malformed.
+  - `whippet check`: the markers check reads the **staged blob** (not the worktree) under
+    `--staged`; `--range` new-dependency detection uses the same worktree-vs-ref baseline as the
+    rest of the gate; and `--range`/`--config-dir` with a missing or flag-like value now errors
+    instead of silently degrading.
+  - marker parser: a trailing CR no longer defeats it, and `whippet:` now requires a comment lead,
+    so ordinary prose that merely mentions `whippet:` is no longer a false marker.
 
 ## [2.1.0] - 2026-06-21
 

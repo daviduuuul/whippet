@@ -17,13 +17,15 @@
  * CLI:  node marker.js <file...> [--json]
  */
 
-// `whippet:` at line start, after whitespace, or after a comment lead — never
-// inside a word (so `notwhippet:` does not match).
-const MARKER = /(?:^|\s)(?:\/\/|#|--|;|\/\*|<!--)?\s*whippet:\s*(.*)$/i;
+// `whippet:` must follow a comment lead (// # -- ; /* <!--, one or more, e.g. `;;`) at line
+// start or after whitespace — a real debt marker always lives in a comment. This keeps
+// `notwhippet:` and ordinary prose that merely mentions "whippet:" from matching as a marker.
+const MARKER = /(?:^|\s)(?:\/\/|#|--|;|\/\*|<!--)+\s*whippet:\s*(.*)$/i;
 const UNTIL = /^(.*?)\s*\|\s*until\s*:\s*(.*)$/i;
 
 function parseMarker(line) {
   if (typeof line !== 'string') return null;
+  line = line.replace(/\r$/, ''); // a trailing CR must not defeat the `$` anchor (lone-CR or stray)
   const m = line.match(MARKER);
   if (!m) return null;
   // drop a trailing block / HTML comment closer

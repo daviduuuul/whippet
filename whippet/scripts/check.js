@@ -35,9 +35,17 @@ function diffNumstat(root, opts) {
     : gitOut(['diff', '--staged', '--numstat'], root);
 }
 function stagedNewDeps(root, opts) {
-  const cur = opts.range ? gitOut(['show', `${opts.range}:package.json`], root) : gitOut(['show', ':package.json'], root);
+  // match the diff baseline used by diffNames/diffNumstat: --range is worktree-vs-ref (so the
+  // "current" side is the working tree), default is index-vs-HEAD (the staged side).
+  let cur, base;
+  if (opts.range) {
+    try { cur = fs.readFileSync(path.join(root, 'package.json'), 'utf8'); } catch { cur = null; }
+    base = gitOut(['show', `${opts.range}:package.json`], root);
+  } else {
+    cur = gitOut(['show', ':package.json'], root);
+    base = gitOut(['show', 'HEAD:package.json'], root);
+  }
   if (cur === null) return null; // package.json not in the diff scope
-  const base = opts.range ? gitOut(['show', `${opts.range}^:package.json`], root) : gitOut(['show', 'HEAD:package.json'], root);
   const keys = (txt) => { try { const p = JSON.parse(txt); return new Set([...Object.keys(p.dependencies || {}), ...Object.keys(p.devDependencies || {})]); } catch { return new Set(); } };
   const before = base === null ? new Set() : keys(base);
   const after = keys(cur);
@@ -77,11 +85,14 @@ function run(opts = {}) {
       else {
         for (const rel of names.split('\n').filter(Boolean)) {
           if (MARK_SKIP_EXT.has(path.extname(rel).toLowerCase())) continue;
-          let txt; try {
-            const full = path.join(root, rel);
-            if (fs.statSync(full).size > 512 * 1024) continue;
-            txt = fs.readFileSync(full, 'utf8');
-          } catch { continue; }
+          let txt;
+          if (opts.range) { // worktree side of `git diff <ref>`
+            try { const full = path.join(root, rel); if (fs.statSync(full).size > 512 * 1024) continue; txt = fs.readFileSync(full, 'utf8'); }
+            catch { continue; }
+          } else { // read the STAGED blob, not the worktree, so content matches the --staged name list
+            txt = gitOut(['show', `:${rel}`], root);
+            if (txt === null || txt.length > 512 * 1024) continue;
+          }
           for (const m of mod.scanMarkers(txt)) {
             if (m.bare) add('error', 'markers', `bare whippet: marker — ${rel}:${m.line}`,
               `"${m.shortcut}" names no | until: ceiling`, 'add | until: <condition>, or resolve the shortcut', `${rel}:${m.line}`);
@@ -147,7 +158,12 @@ function render(report) {
 if (require.main === module) {
   const argv = process.argv.slice(2);
   const has = (f) => argv.includes(f);
-  const valOf = (f) => { const i = argv.indexOf(f); return i !== -1 ? argv[i + 1] : undefined; };
+  // a flag's value can't be another flag or absent — otherwise `--range --strict` would read
+  // "--strict" as the ref, and `--range` at the end would silently fall back to --staged scope.
+  const valOf = (f) => { const i = argv.indexOf(f); if (i === -1) return undefined; const v = argv[i + 1]; return (v === undefined || v.startsWith('--')) ? undefined : v; };
+  for (const f of ['--range', '--config-dir', '--budget']) {
+    if (has(f) && valOf(f) === undefined) { process.stderr.write(`whippet check: ${f} needs a value\n`); process.exit(1); }
+  }
   const opts = { strict: has('--strict'), json: has('--json'), configDir: valOf('--config-dir'), range: valOf('--range') };
   const sel = ['deps', 'markers', 'config'].filter(f => has('--' + f));
   if (sel.length) { opts.deps = sel.includes('deps'); opts.markers = sel.includes('markers'); opts.config = sel.includes('config'); }

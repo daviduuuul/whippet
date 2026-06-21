@@ -162,7 +162,7 @@ function cmpSemver(a, b) {
 // can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool). MCP
 // rules also take a documented trailing wildcard (mcp__server__*, mcp__server__get_*);
 // a bare unanchored mcp__* stays rejected, matching Claude Code's own behavior.
-const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\(.*\))?$|^mcp__[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]*\*$/;
+const PERMISSION_RULE = /^[A-Za-z][A-Za-z0-9_.-]*(\([\s\S]*\))?$|^mcp__[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]*\*$/;
 
 function audit(configDir) {
   const findings = [];
@@ -424,7 +424,9 @@ function audit(configDir) {
         'a stdio command and an http url are mutually exclusive — one is ignored',
         'keep only the field for the intended transport', `mcpServers.${name}`);
     }
-    const type = def.type || (def.command ? 'stdio' : (def.url ? 'http' : undefined));
+    // a bogus type is not a usable transport — fall through to command/url so a server with an
+    // unknown type AND no command/url still gets the 'no transport' error, not just the warning
+    const type = MCP_TRANSPORTS.has(def.type) ? def.type : (def.command ? 'stdio' : (def.url ? 'http' : undefined));
     if (type === 'stdio' && !def.command) {
       add('error', 'mcp', `MCP server missing command: ${name}`,
         'a stdio MCP server has no command to launch', 'add the command', `mcpServers.${name}.command`);
