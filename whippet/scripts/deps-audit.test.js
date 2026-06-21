@@ -51,6 +51,18 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { lodash: '^4' } }, files: { 'index.js': "require('lodash')" } });
   ck('C1 lodash -> no native finding', count(r, 'native') === 0);
 }
+{ // N5 added swap: rfdc -> structuredClone (engine-gated)
+  const r = run({ pkg: { dependencies: { rfdc: '^1' }, engines: { node: '>=18' } }, files: { 'index.js': "require('rfdc')" } });
+  ck('N5 rfdc -> structuredClone native finding', hasFinding(r, 'native', 'native equivalent available: rfdc'));
+}
+{ // N6 caveat surfaced in detail: uuid -> randomUUID is v4-only
+  const r = run({ pkg: { dependencies: { uuid: '^9' }, engines: { node: '>=22' } }, files: { 'index.js': "require('uuid')" } });
+  ck('N6 uuid finding notes v4-only', r.findings.some(f => f.category === 'native' && f.title.includes('uuid') && /v4/i.test(f.detail)));
+}
+{ // N7 added swap still engine-gated: abort-controller sinceNode 16 -> silent on Node 15
+  const r = run({ pkg: { dependencies: { 'abort-controller': '^3' }, engines: { node: '>=15' } }, files: { 'index.js': "require('abort-controller')" } });
+  ck('N7 abort-controller on Node 15 -> no finding (gated)', count(r, 'native') === 0);
+}
 
 /* ---------------- unused ---------------- */
 { // U1 declared but never imported -> info
@@ -95,6 +107,14 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
 { // D2 single member -> no duplicate
   const r = run({ pkg: { dependencies: { dayjs: '^1' } }, files: { 'index.js': "require('dayjs')" } });
   ck('D2 single date lib -> no duplicate', count(r, 'duplicate') === 0);
+}
+{ // D3 new logger group: two loggers -> duplicate
+  const r = run({ pkg: { dependencies: { winston: '^3', pino: '^9' } }, files: { 'index.js': "require('winston'); require('pino')" } });
+  ck('D3 winston+pino -> logger duplicate', hasFinding(r, 'duplicate', 'multiple logger libraries'));
+}
+{ // D4 new member in an existing group: undici joins http client
+  const r = run({ pkg: { dependencies: { undici: '^6', axios: '^1' } }, files: { 'index.js': "require('undici'); require('axios')" } });
+  ck('D4 undici+axios -> http client duplicate', hasFinding(r, 'duplicate', 'multiple http client libraries'));
 }
 
 /* ---------------- robustness ---------------- */
