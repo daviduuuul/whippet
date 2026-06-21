@@ -19,3 +19,6 @@ benchmarks/drift/candidates/
 
 # Whippet runtime per-session state files (hooks write these; never an artifact to commit).
 .whippet-*
+
+# deps-eval derived output
+benchmarks/deps-eval/disagreements.json
