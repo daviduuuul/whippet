@@ -12,9 +12,9 @@ wrapper + dev tooling. Don't edit plugin files expecting repo tooling to live be
 - `whippet/` — the plugin (`source: ./whippet`)
   - `.claude-plugin/plugin.json` — plugin manifest
   - `skills/whippet/SKILL.md` — the discipline itself (**the product**)
-  - `commands/` — `/whippet-review`, `/whippet-simplify`, `/whippet-ledger`, `/whippet-config`, `/whippet-deps`
+  - `commands/` — `/whippet-config` (the **one** on-demand command; the rest of the value runs as autonomous hooks since 2.0)
   - `hooks/` — plugin runtime hooks (`hooks.json`, `whippet-*.js`) + `selftest.js`
-  - `scripts/` — deterministic engines + their `*.test.js`: `config-audit.js` (`/whippet-config`), `deps-audit.js` (`/whippet-deps`), `marker.js` (the `// whippet: … | until: …` parser, shared by ledger/review/check), `check.js` (the `whippet check` pre-commit/CI gate)
+  - `scripts/` — deterministic engines + their `*.test.js`: `config-audit.js` (`/whippet-config` + the SessionStart advisory), `deps-audit.js` (the `package.json` advisory hook + `whippet check`), `marker.js` (the `// whippet: … | until: …` parser, used by `check.js`), `check.js` (the `whippet check` pre-commit/CI gate)
 - `.claude-plugin/marketplace.json` — marketplace entry
 - `scripts/` — dev tooling: `bump.js`, `check-manifests.js`, `bench-report.js`, `on-edit.js`
 - `benchmarks/` — A/B harness, fixtures, `METHODOLOGY.md`
@@ -38,6 +38,11 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
   `whippet-drift-check.js` — code↔docs drift: track edited code vs docs in a per-session state
   file, surface **one** yellow advisory per wave when code changed but no docs did. Logic in
   `whippet-drift-core.js`; off with `WHIPPET_DRIFT_OFF=1`, threshold via `WHIPPET_DRIFT_THRESHOLD`.
+  **Autonomous deterministic advisories (2.0):** `SessionStart(startup)` →
+  `whippet-config-check.js` (runs the config audit, speaks **only on errors**, `WHIPPET_CONFIG_OFF=1`);
+  `PostToolUse` → `whippet-deps-check.js` (runs the deps audit when `package.json` changes, surfaces
+  new native-equivalent/duplicate findings deduped per session, `WHIPPET_DEPS_OFF=1`). Both reuse the
+  `sessionStatePath(kind)` helper in `whippet-drift-core.js` and the engines in `whippet/scripts/`.
 - **Repo dev hook** (`.claude/settings.json`) — local only. `PostToolUse(Edit|Write)` →
   `scripts/on-edit.js` reruns the suite when you touch hooks / scripts / manifests / README and
   blocks (exit 2) on failure. Whippet dogfooding its own "always-on runnable check".
@@ -56,33 +61,28 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
   (anything public leaks into training); report confidence intervals + per-category splits; never
   self-report numbers from a manifest.
 
-## README — keep it current (the shop window)
+## README — keep it minimal (owner's standing instruction)
 
-The README is what drives installs, so keep it **accurate and convincing on every
-shippable change** — and honest above all: whippet sells honesty, so an overclaim
-there costs more than a flat line. Whenever the discipline, a command, the config
-doctor, or the drift hook changes, **update `README.md` in the same change** —
-capabilities, limits, the command table, env knobs (`WHIPPET_DRIFT_OFF`,
-`WHIPPET_DRIFT_THRESHOLD`). Hold two lines: **benchmark-true** (no measured "less
-code / less drift" edge the A/B doesn't show — the honest pitch is portability +
-0 deps + curated/tested commands) and **slop-free** (no rule-of-three, em-dash
-pile-ups, or promotional filler). The version badge is one of the four synced
-manifests — `npm run bump` moves it, never hand-edit.
+The README is **only**: the current version badge + a short paragraph of what the
+plugin does + the install block. **Nothing else** — no benchmark tables, no command
+lists, no honesty essays, no examples. Keep it accurate (update the one paragraph if
+what the plugin does changes) and benchmark-true (no measured edge the A/B doesn't
+show). The version badge is one of the four synced manifests — `npm run bump` moves
+it, never hand-edit.
 
 ## Scope discipline (this repo, of all repos)
 
 Whippet's value is a **narrow** scope: leanness where it pays — *the least that actually works,
-and nothing left rotting in place*. Three fronts, one discipline:
-- **Lean code output + terse reporting** — the original product (skill + `/whippet-review` /
-  `/whippet-simplify` / `/whippet-ledger`).
-- **Lean dependencies** — `/whippet-deps` audits `package.json` for what the platform/stdlib already
-  covers (native-equivalent packages, declared-but-unused, duplicate-purpose). Same detect-only,
-  deterministic, conservative discipline as the config doctor — it covers the gaps the lockfile can't.
+and nothing left rotting in place*. Three fronts, one discipline — **autonomous since 2.0**
+(the review/simplify/ledger/deps commands were removed; the value runs as hooks):
+- **Lean code output + terse reporting** — the always-on skill (SessionStart anchor + mode tracker).
+- **Lean dependencies** — a `PostToolUse` hook audits `package.json` when it changes (native-equivalent,
+  declared-but-unused, duplicate-purpose) and surfaces a quiet advisory; same engine powers `whippet check`.
+  Detect-only, deterministic, conservative — covers the gaps the lockfile can't.
 - **Lean setup** — `/whippet-config` audits the Claude Code config for drift (dead plugin/hook/MCP
   references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files —
-  across `settings.json` and `settings.local.json`), so the setup stays as lean and un-rotted as the
-  code. Detect-only; deterministic; no `$schema` work
-  it already does — it covers the *gaps* the schema can't (referents and runtime).
+  across `settings.json` and `settings.local.json`); also surfaced **automatically** at session start
+  when there are errors. Detect-only; deterministic; covers the *gaps* the schema can't (referents and runtime).
 
 The deterministic checks (deps, config, the `// whippet:` marker rule) are also composable as
 **`whippet check`** — an exit-coded pre-commit/CI gate (`scripts/check.js`), the mechanizable subset

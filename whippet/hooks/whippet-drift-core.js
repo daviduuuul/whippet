@@ -64,13 +64,14 @@ function evaluateDrift(state, { threshold = 3 } = {}) {
 
 // Per-SESSION state file. transcript_path is <project-dir>/<session-id>.jsonl, so
 // its dirname is shared across sessions — key the file by session_id to stay isolated.
-function statePath(input) {
+function sessionStatePath(input, kind = 'drift') {
   const tp = input && input.transcript_path;
   const dir = tp ? path.dirname(String(tp)) : (process.env.CLAUDE_CONFIG_DIR || process.cwd());
   const sid = (input && input.session_id)
     || (tp ? path.basename(String(tp)).replace(/\.[^.]+$/, '') : 'session');
-  return path.join(dir, `.whippet-drift-${sid}.json`);
+  return path.join(dir, `.whippet-${kind}-${sid}.json`);
 }
+function statePath(input) { return sessionStatePath(input, 'drift'); }
 
 // Persist state: atomic temp+rename, with a direct-write fallback (cross-drive
 // rename can fail on Windows). Best-effort — a failed write is never fatal.
@@ -96,4 +97,4 @@ function editedFiles(toolInput) {
   return out;
 }
 
-module.exports = { isDoc, isCode, recordEdit, evaluateDrift, normalizeState, statePath, writeState, editedFiles };
+module.exports = { isDoc, isCode, recordEdit, evaluateDrift, normalizeState, statePath, sessionStatePath, writeState, editedFiles };
