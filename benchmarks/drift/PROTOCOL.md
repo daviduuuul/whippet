@@ -37,8 +37,8 @@ Isolation matters: your hub `CLAUDE.md` and hub hooks would contaminate every ar
 Each arm gets its own empty `CLAUDE_CONFIG_DIR` (no hub config) and its own repo.
 
 ```powershell
-$W    = "C:\Users\davide\Desktop\Progetti Lavoro\AI e Dev\whippet"
-$base = "C:\ClaudeCode\.staging\drift"
+$W    = "C:\path\to\whippet"            # ← your local whippet checkout
+$base = "$env:TEMP\whippet-drift"       # ← any scratch dir outside the repo
 foreach ($a in "A","B","C") {
   New-Item -ItemType Directory -Force "$base\cfg-$a"  | Out-Null
   New-Item -ItemType Directory -Force "$base\repo-$a" | Out-Null
@@ -65,7 +65,7 @@ Pick the arm and session number. **Reset the repo to empty first** (the task
 stream rebuilds the substrate each session):
 
 ```powershell
-$arm = "A"; $base = "C:\ClaudeCode\.staging\drift"      # ← set arm per run
+$arm = "A"; $base = "$env:TEMP\whippet-drift"      # ← set arm per run
 Get-ChildItem "$base\repo-$arm" -Force | Remove-Item -Recurse -Force
 $env:CLAUDE_CONFIG_DIR = "$base\cfg-$arm"; Set-Location "$base\repo-$arm"; claude
 ```
