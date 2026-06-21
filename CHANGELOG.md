@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **config-audit no longer flags a hook/statusLine glob argument as a missing script.**
+  `extractScriptPath` grabbed the first token ending in a script extension, so a valid
+  command like `prettier --write src/**/*.js` was read as the script path `src/**/*.js`,
+  which can't resolve to a file → a false `error` finding that also flipped `whippet
+  check`'s exit code. Glob metacharacters (`*`, `?`) now disqualify a token the same way
+  `${VAR}`/`%VAR%` already did — a glob is never a single literal file to look for.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance

@@ -287,6 +287,11 @@ ck('G1 quoted .ps1', extractScriptPath('pwsh -File "C:\\a\\b.ps1"') === 'C:\\a\\
 ck('G2 node x.mjs dev', extractScriptPath('node.exe /x/y.mjs dev') === '/x/y.mjs');
 ck('G3 no script -> null', extractScriptPath('echo hello world') === null);
 ck('G4 non-string -> null', extractScriptPath(undefined) === null);
+ck('G5 glob arg is not a script -> null', extractScriptPath('prettier --write src/**/*.js') === null && extractScriptPath('eslint "src/**/*.js" --fix') === null);
+{ // G6 end-to-end: a hook running a formatter over a glob is valid, not a missing script
+  const r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Write|Edit', hooks: [{ type: 'command', command: 'prettier --write src/**/*.js' }] }] } } });
+  ck('G6 hook glob arg -> no false missing-script', count(r, 'hooks') === 0);
+}
 
 /* ---------------- K. duplicate local component vs plugin (#13) ---------------- */
 // fabricate an installed plugin under cfg; returns its installPath
