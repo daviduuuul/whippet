@@ -71,6 +71,23 @@ what the plugin does changes) and benchmark-true (no measured edge the A/B doesn
 show). The version badge is one of the four synced manifests — `npm run bump` moves
 it, never hand-edit.
 
+## Privacy — never leak private things into the public repo (owner's standing instruction)
+
+This is a **public repo**. Nothing about the owner's private setup belongs in any tracked file
+— code, tests, benchmarks, corpora, or docs. Before committing, never include:
+- personal paths (`C:\Users\<name>\…`) or the private hub (`C:\ClaudeCode\…`);
+- real hook/guard script names, real `settings.json`/MCP config, `MEMORY_FILE_PATH`, or any live
+  config from the owner's machine — synthetic corpora use **generic placeholders**
+  (`./hooks/*.ps1`, `$CLAUDE_CONFIG_DIR`, `./memory.jsonl`, `C:\path\to\…`, `$env:TEMP\…`);
+- secrets / tokens / keys, even in examples (use `${ENV_VAR}` placeholders);
+- names of the owner's other projects.
+
+The repo ships **only the product and its public tooling**: the plugin (`whippet/` — skill,
+commands, hooks, scripts), the marketplace wrapper, the dev tooling, and benchmarks with sanitized
+synthetic data. Private working docs (ideas, roadmaps, research, scratch notes) stay **out of git**,
+under the gitignored `research/` or `.scratch/` dirs — never committed. (See `.gitignore`.) This
+complements *fixtures stay private* above: when in doubt, sanitize or keep it local.
+
 ## Scope discipline (this repo, of all repos)
 
 Whippet's value is a **narrow** scope: leanness where it pays — *the least that actually works,
