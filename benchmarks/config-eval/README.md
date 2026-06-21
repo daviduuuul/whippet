@@ -48,7 +48,7 @@ not a near-miss of any real key (`enviroment` for `env`), and a deny glob that *
 glob without being an exact string match (needs glob-containment, out of scope for the exact-match
 overlap check).
 
-**Dogfood:** run against the real hub config (`C:\ClaudeCode\.claude`) → 0 errors, 0 warnings,
+**Dogfood:** run against a real local hub config (`$CLAUDE_CONFIG_DIR`) → 0 errors, 0 warnings,
 0 hook/key/enum findings. No false alarms in the wild.
 
 Reproduce: `node eval.js corpus.json` (writes `disagreements.json`), or `node eval.js --selftest`.
