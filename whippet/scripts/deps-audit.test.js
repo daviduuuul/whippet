@@ -168,6 +168,10 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { undici: '^6', axios: '^1' } }, files: { 'index.js': "require('undici'); require('axios')" } });
   ck('D4 undici+axios -> http client duplicate', hasFinding(r, 'duplicate', 'multiple http client libraries'));
 }
+{ // D5b duplicate-purpose only counts runtime dependencies (devDeps competitors are normal)
+  const r = run({ pkg: { devDependencies: { winston: '^3', pino: '^9' }, dependencies: { pino: '^9' } }, files: { 'index.js': "require('pino')" } });
+  ck('D5b logger competitor in devDeps -> no duplicate (only pino shipped)', count(r, 'duplicate') === 0);
+}
 { // D5 bundlers COMPOSE (vite is built on rollup+esbuild) -> never a duplicate
   const r = run({ pkg: { devDependencies: { vite: '^5', rollup: '^4', esbuild: '^0.20' } }, files: { 'index.js': 'const x = 1' } });
   ck('D5 vite+rollup+esbuild -> no duplicate (compositional)', count(r, 'duplicate') === 0);

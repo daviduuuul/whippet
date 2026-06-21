@@ -73,8 +73,10 @@ const UPDATE_CHANNELS = new Set(['stable', 'latest']);
 // we don't list never becomes a false positive.
 const SETTINGS_TYPO_TARGETS = ['permissions', 'hooks', 'enabledPlugins', 'extraKnownMarketplaces',
   'statusLine', 'outputStyle', 'enabledMcpjsonServers', 'disabledMcpjsonServers', 'includeCoAuthoredBy',
-  'cleanupPeriodDays', 'autoUpdatesChannel', 'enableAllProjectMcpServers', 'additionalDirectories', 'model', 'env'];
-const KNOWN_SETTINGS_KEYS = new Set([...SETTINGS_TYPO_TARGETS,
+  'cleanupPeriodDays', 'autoUpdatesChannel', 'enableAllProjectMcpServers', 'additionalDirectories', 'model'];
+// 'env' is recognized (valid key) but NOT a typo target: at 3 chars its edit-distance-1
+// neighborhood is too wide to safely suggest "did you mean env" without risking a false positive.
+const KNOWN_SETTINGS_KEYS = new Set([...SETTINGS_TYPO_TARGETS, 'env',
   '$schema', 'apiKeyHelper', 'forceLoginMethod', 'awsAuthRefresh', 'awsCredentialExport', 'disableAllHooks',
   'disableBypassPermissionsMode', 'preferredNotifChannel', 'spinnerTipsEnabled', 'messageIdleNotifThresholdMs',
   'alwaysThinkingEnabled', 'todoFeatureEnabled', 'verbose', 'mcpServers']);
