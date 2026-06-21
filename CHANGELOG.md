@@ -20,7 +20,20 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   Node release history and gated at the major where the native is non-experimental. Lifts the
   native-check recall 81.7% → 85.8% on the eval corpus with no new false-positives.
 
+- **config-audit catches more real settings-key typos.** A misspelled key sitting next to its
+  correctly-spelled sibling is now flagged as a dead near-duplicate (was suppressed), and the typo
+  distance is Damerau, so a transposition (`modle`→`model`) counts as one edit. Validated on an
+  82-config labeled eval (recall 94.2% → 96.5%).
+
 ### Fixed
+- **config-audit no longer false-flags valid hooks/config (4 bugs found by an 82-config eval).**
+  Synced `HOOK_EVENTS` to the 30 documented events (newer ones like `PostToolUseFailure`/
+  `PermissionRequest` were flagged as unknown) and made the check a hybrid — a near-miss of a known
+  event is an `error` (typo), an unknown-but-far name only a `warning` (could be a newer event), so
+  the autonomous advisory never hard-fails on a future event. Added `mcp_tool` to the valid hook
+  types. Stopped regex-validating match-all (`*`/`""`) and exact/pipe matchers (only true regexes are
+  compiled). Accepted any positive `timeout` number (not only integers). Real false-positives on the
+  eval corpus: 5 → 0.
 - **deps-audit no longer flags `node-fetch`/`cross-fetch` below Node 21.** Global `fetch` is
   experimental on Node 18–20 and stable only from 21, so the previous floor of 18 produced a false
   “native equivalent available” finding on Node 18/20 projects. Floor corrected to 21, lifting the

@@ -49,10 +49,17 @@ function extractScriptPath(cmd) {
 }
 
 // Recognized hook events / MCP transports — a value outside these fails silently.
-const HOOK_EVENTS = new Set(['PreToolUse', 'PostToolUse', 'UserPromptSubmit',
-  'Notification', 'Stop', 'SubagentStop', 'SessionStart', 'SessionEnd', 'PreCompact']);
+// The documented hook events (code.claude.com/docs/en/hooks). This set grows over time,
+// so the check below only flags a NEAR-MISS of one (a likely typo) and stays silent on an
+// unknown-but-far name — a newer event we don't list must never become a false positive.
+const HOOK_EVENTS = new Set(['SessionStart', 'Setup', 'UserPromptSubmit', 'UserPromptExpansion',
+  'PreToolUse', 'PermissionRequest', 'PermissionDenied', 'PostToolUse', 'PostToolUseFailure',
+  'PostToolBatch', 'Notification', 'MessageDisplay', 'SubagentStart', 'SubagentStop', 'TaskCreated',
+  'TaskCompleted', 'Stop', 'StopFailure', 'TeammateIdle', 'InstructionsLoaded', 'ConfigChange',
+  'CwdChanged', 'FileChanged', 'WorktreeCreate', 'WorktreeRemove', 'PreCompact', 'PostCompact',
+  'Elicitation', 'ElicitationResult', 'SessionEnd']);
 const MCP_TRANSPORTS = new Set(['stdio', 'http', 'streamable-http', 'sse', 'ws']);
-const HOOK_TYPES = new Set(['command', 'prompt', 'agent', 'http']);
+const HOOK_TYPES = new Set(['command', 'prompt', 'agent', 'http', 'mcp_tool']);
 // Closed-set enums: a typo silently reverts to the default, which the schema can't catch at runtime.
 const DEFAULT_MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'dontAsk', 'bypassPermissions']);
 const UPDATE_CHANNELS = new Set(['stable', 'latest']);
@@ -72,21 +79,24 @@ const KNOWN_SETTINGS_KEYS = new Set([...SETTINGS_TYPO_TARGETS,
   'disableBypassPermissionsMode', 'preferredNotifChannel', 'spinnerTipsEnabled', 'messageIdleNotifThresholdMs',
   'alwaysThinkingEnabled', 'todoFeatureEnabled', 'verbose', 'mcpServers']);
 
-// Levenshtein edit distance, short-circuited: we only ask "is it exactly one edit?",
-// so a length gap > 1 can't qualify and returns early (distance is at least |m-n|).
+// Damerau-Levenshtein (optimal string alignment): counts an adjacent transposition as a
+// single edit, so "modle"->"model" is distance 1. Used for both the settings-key and the
+// hook-event typo checks. Strings here are short identifiers, so the full DP is cheap.
 function editDistance(a, b) {
   const m = a.length, n = b.length;
-  if (Math.abs(m - n) > 1) return 2;
-  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  const d = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
   for (let i = 1; i <= m; i++) {
-    const cur = [i];
     for (let j = 1; j <= n; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
     }
-    prev = cur;
   }
-  return prev[n];
+  return d[m][n];
 }
 
 // MCP servers live in .mcp.json (project) / .claude.json (user), not settings.json.
@@ -274,15 +284,18 @@ function audit(configDir) {
     if (!o) return;
 
     // typo'd top-level key: valid JSON, but an unknown key is silently ignored, so a
-    // misspelled structural key disables a whole feature with no error. Flag only a
-    // single-edit near-miss of a known target whose correct spelling is absent.
+    // misspelled structural key disables a whole feature with no error. Flag a single-edit
+    // near-miss of a known target — whether or not the correct key is present (a typo sitting
+    // next to the real key is a dead near-duplicate, still worth surfacing).
     for (const key of Object.keys(o)) {
       if (KNOWN_SETTINGS_KEYS.has(key)) continue;
-      const hit = SETTINGS_TYPO_TARGETS.find(t => !(t in o) && editDistance(key, t) === 1);
+      const hit = SETTINGS_TYPO_TARGETS.find(t => editDistance(key, t) === 1);
       if (hit) {
+        const dead = hit in o; // the correctly-spelled key is also present
         add('warning', 'settings', `unknown settings key: ${key}`,
-          `not a recognized setting, so it is silently ignored — likely a typo of "${hit}"`,
-          `rename "${key}" to "${hit}"`, `${label}:${key}`);
+          dead ? `not a recognized setting, so it is silently ignored — a stray near-duplicate of "${hit}", which is also present`
+            : `not a recognized setting, so it is silently ignored — likely a typo of "${hit}"`,
+          dead ? `remove the stray "${key}"` : `rename "${key}" to "${hit}"`, `${label}:${key}`);
       }
     }
 
@@ -290,18 +303,33 @@ function audit(configDir) {
     const hooks = asObj(o.hooks) || {};
     for (const [event, groups] of Object.entries(hooks)) {
       if (!HOOK_EVENTS.has(event)) {
-        add('error', 'hooks', `unknown hook event: ${event}`,
-          'this event name is not recognized, so the hook will never fire',
-          `use one of: ${[...HOOK_EVENTS].join(', ')}`, `${label}:hooks.${event}`);
+        // a near-miss of a known event is a confident typo (error); an unknown-but-far name is
+        // probably wrong but could be a newer event we don't list yet, so it's only a warning —
+        // the autonomous SessionStart advisory speaks on errors, so it never false-alarms on a new event.
+        const near = [...HOOK_EVENTS].find(e => editDistance(event, e) <= 2);
+        if (near) {
+          add('error', 'hooks', `unknown hook event: ${event}`,
+            `not a recognized hook event, so the hook never fires — likely a typo of "${near}"`,
+            `use "${near}" (or another valid event)`, `${label}:hooks.${event}`);
+        } else {
+          add('warning', 'hooks', `unknown hook event: ${event}`,
+            'not a recognized hook event — if it is a typo the hook never fires; if it is a newer event, ignore',
+            'check the name against the current hooks docs', `${label}:hooks.${event}`);
+        }
       }
       if (!Array.isArray(groups)) continue;
       for (const g of groups) {
         if (g && g.matcher != null) {
-          try { new RegExp(g.matcher); }
-          catch {
-            add('error', 'hooks', `invalid hook matcher: ${event}`,
-              `the matcher is not a valid regex: ${g.matcher}`,
-              'fix the matcher pattern', `${label}:hooks.${event}`);
+          // matcher is match-all ("*"/""), an exact/pipe list (letters|digits|_|"|"), or else a
+          // JS regex (code.claude.com/docs/en/hooks) — only the regex form can be malformed.
+          const mt = String(g.matcher);
+          if (mt !== '*' && mt !== '' && !/^[\w|]+$/.test(mt)) {
+            try { new RegExp(mt); }
+            catch {
+              add('error', 'hooks', `invalid hook matcher: ${event}`,
+                `the matcher is not a valid regex: ${mt}`,
+                'fix the matcher pattern', `${label}:hooks.${event}`);
+            }
           }
         }
         for (const h of (g && g.hooks) || []) {
@@ -322,11 +350,11 @@ function audit(configDir) {
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
           }
-          // timeout must be a positive integer (seconds); absent is fine (a default applies)
-          if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !Number.isInteger(h.timeout) || h.timeout <= 0)) {
+          // timeout is a positive number of seconds (int or fractional); absent uses a default
+          if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !(h.timeout > 0))) {
             add('warning', 'hooks', `invalid hook timeout: ${event}`,
-              `timeout must be a positive integer in seconds; got ${JSON.stringify(h.timeout)}`,
-              'set a positive integer timeout, or remove it to use the default', `${label}:hooks.${event}`);
+              `timeout must be a positive number of seconds; got ${JSON.stringify(h.timeout)}`,
+              'set a positive number, or remove it to use the default', `${label}:hooks.${event}`);
           }
         }
       }
