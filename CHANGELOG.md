@@ -2,6 +2,30 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [2.0.0] — 2026-06-21
+
+### Changed (BREAKING)
+- **Whippet is now autonomous — it mostly runs on its own.** Removed the four commands
+  nobody reached for: `/whippet-review`, `/whippet-simplify`, `/whippet-ledger`,
+  `/whippet-deps`. Their deterministic value moves into quiet, non-blocking hooks; the
+  engines (`config-audit.js`, `deps-audit.js`, `marker.js`) are unchanged — only their
+  packaging shifts from commands to hooks.
+- `/whippet-config` is the **one** remaining command (the full, on-demand setup audit).
+  `whippet check` stays as the opt-in pre-commit/CI gate — a script, not a slash command.
+- The README is now **minimal by design**: current version + what the plugin does +
+  install, nothing else.
+
+### Added
+- **Config advisory** (`SessionStart` startup → `whippet-config-check.js`) — runs the
+  config audit once and surfaces a one-line advisory **only when there are errors**
+  (warnings/info stay for `/whippet-config`, so it never nags). Off: `WHIPPET_CONFIG_OFF=1`.
+- **Dependency advisory** (`PostToolUse` → `whippet-deps-check.js`) — when `package.json`
+  changes, runs the deps audit and surfaces new native-equivalent / duplicate findings,
+  deduped per session. Off: `WHIPPET_DEPS_OFF=1`.
+- `sessionStatePath(kind)` factored into `whippet-drift-core.js` (`statePath` stays
+  byte-compatible) + `whippet-deps-core.js`. 13-check `whippet-autonomy.test.js` (pure
+  core + spawned integration), wired into `npm test`.
+
 ## [1.6.0] — 2026-06-21
 
 ### Added

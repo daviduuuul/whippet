@@ -1,7 +1,7 @@
 {
   "name": "whippet",
-  "version": "1.6.0",
-  "description": "Four lean tools for Claude Code: a YAGNI code discipline (always-on + review/simplify/ledger), a dependency-leanness auditor (/whippet-deps), a config-drift auditor (/whippet-config), and a code↔docs drift hook — plus `whippet check`, a deterministic pre-commit/CI gate.",
+  "version": "2.0.0",
+  "description": "Autonomous lean discipline for Claude Code: an always-on YAGNI code discipline plus quiet hooks that flag dependency bloat (on package.json edits), config drift (at session start), and code↔docs drift. One command, /whippet-config, for the full setup audit on demand; `whippet check` is an optional pre-commit/CI gate.",
   "author": { "name": "daviduuuul", "url": "https://github.com/daviduuuul" },
   "homepage": "https://github.com/daviduuuul/whippet",
   "repository": "https://github.com/daviduuuul/whippet",

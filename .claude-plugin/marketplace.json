@@ -6,7 +6,7 @@
       "name": "whippet",
       "source": "./whippet",
       "description": "Three lean tools for Claude Code: a YAGNI code discipline, a config-drift auditor (/whippet-config), and a code↔docs drift hook.",
-      "version": "1.6.0"
+      "version": "2.0.0"
     }
   ]
 }
