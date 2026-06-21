@@ -31,9 +31,11 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
   are. And `env` is no longer a settings-key typo target (at 3 chars its edit-distance-1
   neighbourhood is too wide to suggest safely); it stays recognized as a valid key.
 - **deps-audit no longer false-flags deps used only in single-file components.** The source scan
-  now reads `.vue` / `.svelte` / `.astro` (plus `.mts` / `.cts`), so a runtime dependency imported
+  now reads `.vue` / `.svelte` / `.astro` / `.mdx` (plus `.mts` / `.cts`), so a runtime dependency imported
   only inside a component is no longer reported as "possibly unused" — a false positive on any
   Vue / Svelte / Astro project.
+- **config-audit derives the url-requiring MCP transport list** from the transport set instead of
+  duplicating it, so the two can no longer drift apart.
 
 ## [2.1.0] - 2026-06-21
 

@@ -59,6 +59,8 @@ const HOOK_EVENTS = new Set(['SessionStart', 'Setup', 'UserPromptSubmit', 'UserP
   'CwdChanged', 'FileChanged', 'WorktreeCreate', 'WorktreeRemove', 'PreCompact', 'PostCompact',
   'Elicitation', 'ElicitationResult', 'SessionEnd']);
 const MCP_TRANSPORTS = new Set(['stdio', 'http', 'streamable-http', 'sse', 'ws']);
+// every transport except stdio is remote and needs a url — derived so it can't drift from the set
+const MCP_URL_TRANSPORTS = [...MCP_TRANSPORTS].filter(t => t !== 'stdio');
 const HOOK_TYPES = new Set(['command', 'prompt', 'agent', 'http', 'mcp_tool']);
 // Closed-set enums: a typo silently reverts to the default, which the schema can't catch at runtime.
 const DEFAULT_MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'dontAsk', 'bypassPermissions']);
@@ -433,7 +435,7 @@ function audit(configDir) {
       add('error', 'mcp', `MCP server missing command: ${name}`,
         'a stdio MCP server has no command to launch', 'add the command', `mcpServers.${name}.command`);
     }
-    if (['http', 'streamable-http', 'sse', 'ws'].includes(type) && !def.url) {
+    if (MCP_URL_TRANSPORTS.includes(type) && !def.url) {
       add('error', 'mcp', `MCP server missing url: ${name}`,
         `a ${type} MCP server has no url`, 'add the server url', `mcpServers.${name}.url`);
     }

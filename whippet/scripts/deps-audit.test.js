@@ -159,6 +159,10 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   } });
   ck('U9 deps used only in .astro/.vue/.svelte -> no false unused', count(r, 'unused') === 0);
 }
+{ // U10 a dep imported only inside a .mdx doc is NOT unused (MDX is a source format too)
+  const r = run({ pkg: { dependencies: { recharts: '^2' } }, files: { "src/main.js": "console.log(1)", "docs/page.mdx": 'import { LineChart } from "recharts"' } });
+  ck('U10 dep used only in .mdx -> no false unused', count(r, 'unused') === 0);
+}
 
 /* ---------------- duplicate-purpose ---------------- */
 { // D1 two date libraries -> info
