@@ -91,8 +91,10 @@ a rubric-based, reference-guided judge prompt and ingests the verdict. Run it
 only when it holds both ways, so position bias collapses to a tie. Point any
 model at it (a different family than the one under test).
 
-Where to push for **big** results: add fixtures (especially traps) and run the
-smaller/older models too. A frontier 2026 model is already lean, so the
-size/dependency axis barely moves — the gap is predicted to widen on weaker
-models, and the harness is built to surface exactly that, with CIs that stay
-honest about small samples.
+Where to push for **big** results: weaker models. A frontier 2026 model is already
+lean, so the size/dependency axis barely moves on Opus — the gap is predicted to widen
+on cheaper models. The harness now sweeps model tiers: `scripts/bench-sweep.js` runs
+`off`/`baseline`/`whippet` across Haiku, Sonnet and Opus over the fixtures (plus two
+harder ones), and `npm run bench` splits the scoreboard per model once the rows exist.
+The run is pre-registered in [`results/2026-06-21-model-sweep.md`](results/2026-06-21-model-sweep.md)
+— **results pending**, no measured cross-model claim until it actually runs.

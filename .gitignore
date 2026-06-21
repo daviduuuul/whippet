@@ -8,6 +8,11 @@ research/
 # Private benchmark fixtures — public tasks leak into training (METHODOLOGY.md).
 benchmarks/fixtures/overcut-validation/
 benchmarks/fixtures/batch-multistep/
+benchmarks/fixtures/overcut-parse-2/
+benchmarks/fixtures/batch-refactor/
 
 # Drift-test scratch: per-session candidate snapshots copied out of subject repos.
 benchmarks/drift/candidates/
+
+# Sweep candidate snapshots (bench-sweep.js copies fixtures here before scoring).
+.staging/

@@ -34,7 +34,7 @@ Four small tools, one job: keep your Claude Code setup **lean and un-rotted**. I
 
 The part most plugins skip — and the reason to trust the rest.
 
-- **The lean-code discipline ties a one-liner.** In a paired A/B it matched a plain *"write less code"* nudge: **3.9 vs 3.6** lines added, **25/25** correct, **0** dependencies either way. It doesn't beat a good prompt — the [benchmark note](benchmarks/results/2026-06-19-opus-ab.md) says so in full. What it sells is portability: installed once and dialled, instead of pasted into every repo's `CLAUDE.md`.
+- **The lean-code discipline ties a one-liner.** In a paired A/B it matched a plain *"write less code"* nudge: **3.9 vs 3.6** lines added, **25/25** correct, **0** dependencies either way. It doesn't beat a good prompt — the [benchmark note](benchmarks/results/2026-06-19-opus-ab.md) says so in full. (That tie is on Opus 4.8, the leanest case; a cross-tier sweep across Haiku/Sonnet/Opus is [pre-registered](benchmarks/results/2026-06-21-model-sweep.md) — results pending, no claim until it runs.) What it sells is portability: installed once and dialled, instead of pasted into every repo's `CLAUDE.md`.
 - **The other three are deterministic, not magic.** `/whippet-deps`, `/whippet-config` and the drift hook carry no benchmark because they don't need one — they read your files and report facts, nothing inferred.
 - **Every public claim is backed by a paired run, or it isn't made.** Nulls published, fixtures kept private ([methodology](benchmarks/METHODOLOGY.md)).
 

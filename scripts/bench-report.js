@@ -18,6 +18,14 @@ function perCatMean(observations, cat, arm, key) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
+// Twin of perCatMean over the model dimension — the model-tier sweep records
+// `model` per observation; without this the report would pool Haiku into Opus and
+// hide the per-tier divergence that is the whole point of the sweep.
+function perModelMean(observations, model, arm, key) {
+  const vals = observations.filter((o) => o.model === model && o.arm === arm && typeof o[key] === 'number').map((o) => o[key]);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
 if (process.argv[2] === 'selftest') {
   const assert = require('node:assert/strict');
   const t = [
@@ -31,6 +39,14 @@ if (process.argv[2] === 'selftest') {
   assert.equal(perCatMean(t, 'batch_size', 'off', 'loc_added'), 80);
   assert.equal(perCatMean(t, 'trap_reuse', 'whippet', 'loc_added'), 4);
   assert.equal(perCatMean(t, 'batch_size', 'baseline', 'loc_added'), null, 'no obs → null, not 0');
+  const tm = [
+    { model: 'haiku', arm: 'off', loc_added: 30 },
+    { model: 'haiku', arm: 'whippet', loc_added: 5 },
+    { model: 'opus', arm: 'off', loc_added: 10 },
+  ];
+  assert.equal(perModelMean(tm, 'haiku', 'off', 'loc_added'), 30);
+  assert.equal(perModelMean(tm, 'opus', 'off', 'loc_added'), 10, 'per-model must NOT pool haiku into opus');
+  assert.equal(perModelMean(tm, 'sonnet', 'off', 'loc_added'), null, 'absent model → null');
   console.log('bench-report selftest: pass');
   process.exit(0);
 }
@@ -131,5 +147,34 @@ if (catsNum.length) {
       return parts.every((p) => p === '—') ? '—' : parts.join(' / ');
     };
     console.log(`| ${cat} | ${arms.map(fmt).join(' | ')} |`);
+  }
+}
+
+// Per-model split — the model-tier sweep's headline. Gated on >1 model so a
+// single-model scoreboard (e.g. the 2026-06-19 Opus run alone) stays byte-identical
+// until real multi-model rows exist.
+const models = [...new Set(obs.filter((o) => o.model).map((o) => o.model))];
+if (models.length > 1) {
+  console.log(`\n**Correct by model × arm**\n`);
+  console.log(header(['Model', ...arms]));
+  for (const m of models) {
+    const inModel = (arm) => {
+      const vals = obs.filter((o) => o.model === m && o.arm === arm && typeof o.correct === 'boolean');
+      if (!vals.length) return '—';
+      const k = vals.filter((o) => o.correct).length;
+      const [lo, hi] = wilson(k, vals.length);
+      return `${k}/${vals.length} (${pct(lo)}–${pct(hi)}%)`;
+    };
+    console.log(`| ${m} | ${arms.map(inModel).join(' | ')} |`);
+  }
+
+  console.log(`\n**Diff size by model × arm** (mean ${DIFF.map(([, l]) => l).join(' / ')})\n`);
+  console.log(header(['Model', ...arms]));
+  for (const m of models) {
+    const fmt = (arm) => {
+      const parts = DIFF.map(([key]) => { const v = perModelMean(obs, m, arm, key); return v === null ? '—' : v.toFixed(1); });
+      return parts.every((p) => p === '—') ? '—' : parts.join(' / ');
+    };
+    console.log(`| ${m} | ${arms.map(fmt).join(' | ')} |`);
   }
 }

@@ -105,6 +105,12 @@ qualitative column. The harness scores only the objective metrics above.
   significance test is claimed**; on a 25/25/25 ceiling McNemar is degenerate
   (zero discordant pairs). LOC is the only axis with spread.
 - **Report per category**, never only the pooled number (Simpson's paradox).
+- **Model tier matters.** The 2026-06-19 screen is Opus-only — the leanest case, where
+  the discipline has least to add. A cross-tier sweep (Haiku/Sonnet/Opus via
+  `scripts/bench-sweep.js`) is **pre-registered**
+  ([2026-06-21-model-sweep.md](results/2026-06-21-model-sweep.md)) and **not yet run**;
+  `bench-report.js` splits the scoreboard per model × arm once `runs.jsonl` holds more
+  than one model. No cross-model claim ships until those rows exist.
 - **Pre-register** metrics before looking; report **all** runs, never best-of;
   publish the nulls.
 
@@ -120,8 +126,9 @@ scorer (or hand-authored into a `results/*.json` `observations` array):
 ```
 
 `npm run bench` aggregates everything under `results/` into one scoreboard with
-per-arm rates + CIs and a per-category breakdown. **Never self-report from a
-manifest** — score observed behavior (the ponytail #121 lesson).
+per-arm rates + CIs, a per-category breakdown, and a per-model × arm split (shown only
+when more than one model is present). **Never self-report from a manifest** — score
+observed behavior (the ponytail #121 lesson).
 
 ## Honesty guardrails
 
