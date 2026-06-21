@@ -39,6 +39,13 @@ ck('non-string -> null', parseMarker(42) === null && parseMarker(null) === null 
   ck('scan keeps raw + fields', hits[1].shortcut === 'two' && hits[1].until === 'v2');
 }
 
+{ // scanMarkers must split on every line-ending form, not just LF/CRLF
+  const cr = scanMarkers('// whippet: one\r// whippet: two | until: v2\rlast');
+  ck('scan handles lone-CR lines', cr.length === 2 && cr[1].until === 'v2');
+  const crlf = scanMarkers('// whippet: a\r\n// whippet: b | until: x\r\n');
+  ck('scan handles CRLF lines', crlf.length === 2 && crlf[0].shortcut === 'a' && crlf[1].until === 'x');
+}
+
 console.log(`\n${pass}/${pass + fail} marker checks passed`);
 if (fail) { console.log('FAILED: ' + fails.join(' | ')); process.exit(1); }
 process.exit(0);

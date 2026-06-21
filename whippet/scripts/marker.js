@@ -41,7 +41,7 @@ function parseMarker(line) {
 
 function scanMarkers(text) {
   const out = [];
-  const lines = String(text).split(/\r?\n/);
+  const lines = String(text).split(/\r\n|\r|\n/);
   for (let i = 0; i < lines.length; i++) {
     const p = parseMarker(lines[i]);
     if (p) out.push({ line: i + 1, raw: lines[i].trim(), shortcut: p.shortcut, until: p.until, bare: p.bare });
