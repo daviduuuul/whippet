@@ -351,13 +351,16 @@ function audit(configDir) {
     }
   }
 
-  // 5. backups left inside the config dir (orphans / bloat)
-  const backupsDir = path.join(configDir, 'backups');
-  for (const ent of safeReaddir(backupsDir)) {
-    const full = path.join(backupsDir, ent);
-    add('info', 'stale', `backup inside config dir: ${ent}`,
-      'backups bloat the config dir and can carry a full .git history',
-      'move it out of the config dir or delete it', full);
+  // 5. backup files left loose in the config-dir ROOT (leftovers / bloat). A dedicated
+  //    backups/ subdir is good hygiene and is NOT flagged — only strays in the root,
+  //    aggregated into one finding. A data archive (e.g. *-archive.jsonl) is not a backup.
+  const BACKUP_RE = /\.(bak|backup|orig|old)(\.|$)|~$/i;
+  const strays = safeReaddir(configDir).filter((e) => BACKUP_RE.test(e));
+  if (strays.length) {
+    const shown = strays.slice(0, 3).join(', ') + (strays.length > 3 ? `, +${strays.length - 3} more` : '');
+    add('info', 'stale', `${strays.length} backup file(s) loose in the config dir`,
+      `leftovers in the config-dir root (${shown}) bloat it; a dedicated backups/ subdir keeps them tidy`,
+      'move them into a backups/ subdir, or delete them', 'config dir root');
   }
 
   // 6. local component (skill/agent/command) shadowing a plugin's
