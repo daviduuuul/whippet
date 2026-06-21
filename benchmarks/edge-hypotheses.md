@@ -175,6 +175,54 @@ Format — **claim · metric · arms · prediction · null-risk · feasibility**
    Ponytail honestly, not expecting a whippet-vs-baseline edge.
 6. **H5** — true but low-value; fold into another run rather than spend a campaign on it.
 
-## Parking lot (add ideas here)
+## More ideas — utility over benchmark-wins
 
-- _(open — drop new hypotheses below as they come up)_
+Reframe: "beat everything" is **unwinnable as an output-size benchmark** (it's a tie
+with baseline and md). It's very winnable as **utility** — be the only, or the most
+trustworthy, tool on a real need. These measure that, and most need no model at all.
+
+### H10 — Real findings on real repos (dogfood at scale)
+- **Claim:** the deterministic auditors find real problems in the wild.
+- **Metric:** run config-audit / deps-audit over N popular OSS repos (+ real Claude Code
+  configs); count TRUE findings and the false-positive rate.
+- **Prediction:** a non-trivial count of real drift / redundant-dep findings, FP ~0.
+- **Null-risk:** LOW for usefulness; the count might just be small — still a fact.
+- **Feasibility:** HIGH — read-only, no model, scriptable over cloned repos.
+
+### H11 — False-positive rate (the detector's credibility)
+- **Claim:** a detector lives or dies on its FP rate; whippet is conservative by design.
+- **Metric:** over M *valid* configs / package.json, count false positives. Target 0.
+- **Prediction:** ~0 — and tonight's 5 false-positive fixes (#14–#19, #21) move it there; prove it.
+- **Null-risk:** LOW. The most defensible "it's trustworthy" fact.
+- **Feasibility:** HIGH — read-only, scriptable.
+
+### H12 — The config-audit niche has zero competitors  ⭐ easiest "beats all"
+- **Claim:** nothing else audits a *Claude Code* config (dead hook/plugin/MCP refs,
+  marketplace drift, malformed shapes). whippet is the only one — there's nobody to beat.
+- **Metric:** a survey — list any tool that does this (expected: none).
+- **Prediction:** empty field → a categorical utility edge, no benchmark needed.
+- **Null-risk:** LOW. The honest "beats everything" is "is the only thing doing it".
+- **Feasibility:** HIGH — a tool survey, then state it (not in the README; that stays minimal).
+
+### H13 — Honest comparison vs depcheck / knip (deps only)
+- **Claim:** for deps, depcheck/knip exist; whippet's deps-audit is *complementary* —
+  native-equivalent swaps (uuid→randomUUID) the lockfile tools don't flag, at a lower FP rate.
+- **Metric:** on the same repos: overlap, unique findings, FP each.
+- **Prediction:** whippet finds native-equivalents they miss; they find unused deps whippet
+  under-reports (by design). Complementary, not strictly better — say so.
+- **Null-risk:** MEDIUM — they may dominate on unused-dep detection. Honest either way.
+- **Feasibility:** MEDIUM — needs the other tools installed.
+
+### H14 — Time-to-detection (narrative, not a headline number)
+- **Claim:** config-audit surfaces a broken hook at SessionStart, before it silently fails
+  mid-work; otherwise the user finds it late, or never.
+- **Null-risk:** HIGH to quantify cleanly — keep as a worked example, not a metric.
+
+### H15 — (parking, lean-tension) Wider auditor coverage
+- **Idea:** more deterministic checks (more config-rot classes; Python `pyproject` deps).
+  Real utility, but risks feature-creep against the lean mandate. Needs explicit OK, and
+  only add a check whose FP rate is provably ~0.
+
+## Parking lot (open)
+
+- _(drop new hypotheses below as they come up)_
