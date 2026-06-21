@@ -2,6 +2,16 @@
 
 All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
+## [Unreleased]
+
+### Fixed
+- **config-audit version-drift compares versions numerically, not as strings.** The
+  directory-marketplace check used `installed !== source`, so it labeled a plugin whose
+  installed version is *ahead* of the source (a local dev build) as "plugin out of date —
+  run /plugin update" (which would downgrade it), and the string compare even ordered
+  `1.10.0` vs `1.9.0` backwards. It now flags only when the installed version is genuinely
+  behind the source.
+
 ## [2.0.1] — 2026-06-21
 
 ### Performance

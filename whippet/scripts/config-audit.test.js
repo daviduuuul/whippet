@@ -432,6 +432,8 @@ ck('version drift: installed behind source -> warning',
   hasFinding(mkWithSourceVersion('2.0.0', '1.0.0'), 'marketplace', 'plugin out of date: foo@mymk'));
 ck('version match -> no out-of-date finding',
   !hasFinding(mkWithSourceVersion('2.0.0', '2.0.0'), 'marketplace', 'plugin out of date'));
+ck('version drift: installed ahead of source -> no false out-of-date (numeric compare, not string)',
+  !hasFinding(mkWithSourceVersion('1.9.0', '1.10.0'), 'marketplace', 'plugin out of date'));
 
 /* ---------------- relative script paths resolve against configDir (no false positive) ---------------- */
 { // C8 relative hook path that exists under configDir -> NOT flagged
