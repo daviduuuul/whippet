@@ -1,8 +1,0 @@
-{
-  "id": "stdlib-uuid",
-  "category": "trap_stdlib",
-  "prompt": "task.md",
-  "grader": "grader.mjs",
-  "manifest": "package.json",
-  "summary": "Node has crypto.randomUUID(). Lean answer is one line off the platform. Trap: adding a `uuid`/`nanoid` dependency for a job the stdlib already does."
-}

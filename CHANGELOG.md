@@ -4,6 +4,25 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-21
+
+**Breaking — re-scoped to a config-only auditor.** Whippet's lean-code discipline has moved to
+the `ponytail` plugin; whippet is now solely a **Claude Code config-drift auditor**. If you used
+whippet for the YAGNI coding discipline, install `ponytail` instead.
+
+### Removed
+- The lean-code discipline: the `whippet` skill, the SessionStart discipline anchor
+  (`whippet-activate`), the mode tracker, and the lite/full/ultra modes.
+- The code↔docs drift advisory (`Stop` hook) and the `// whippet:` debt markers.
+- The `whippet check` pre-commit/CI gate (`scripts/check.js`, `marker.js`) and its benchmarks.
+- The dependency auditor (`deps-audit`, the `package.json` PostToolUse advisory) and its benchmarks.
+
+### Kept
+- `config-audit` — the read-only Claude Code setup audit (dead plugin/hook/MCP references, fragile
+  local marketplaces, duplicate components, malformed JSON, mistyped settings keys, orphaned files).
+- `/whippet-config` — the on-demand full audit.
+- The quiet SessionStart advisory that speaks only on config errors (`WHIPPET_CONFIG_OFF=1` to mute).
+
 ## [2.1.1] - 2026-06-21
 
 Precision & correctness patch. False positives found by real-world validation (24 public repos,

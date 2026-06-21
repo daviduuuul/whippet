@@ -1,8 +1,10 @@
 # Whippet — project context
 
-Claude Code plugin: a lean-code discipline ("the least code that actually works") plus
-terse, concrete reporting. Shipped through a single-plugin marketplace. MIT, public repo
-(`daviduuuul/whippet`).
+Claude Code plugin: a **config-drift auditor for Claude Code setups**. Read-only, deterministic,
+zero deps. Shipped through a single-plugin marketplace. MIT, public repo (`daviduuuul/whippet`).
+
+> The lean-code discipline whippet used to ship was removed in **3.0.0** — that role moved to the
+> `ponytail` plugin. Don't reintroduce skill/discipline/mode/marker/deps code here.
 
 ## Layout — repo root ≠ plugin
 
@@ -11,39 +13,28 @@ wrapper + dev tooling. Don't edit plugin files expecting repo tooling to live be
 
 - `whippet/` — the plugin (`source: ./whippet`)
   - `.claude-plugin/plugin.json` — plugin manifest
-  - `skills/whippet/SKILL.md` — the discipline itself (**the product**)
-  - `commands/` — `/whippet-config` (the **one** on-demand command; the rest of the value runs as autonomous hooks since 2.0)
-  - `hooks/` — plugin runtime hooks (`hooks.json`, `whippet-*.js`) + `selftest.js`
-  - `scripts/` — deterministic engines + their `*.test.js`: `config-audit.js` (`/whippet-config` + the SessionStart advisory), `deps-audit.js` (the `package.json` advisory hook + `whippet check`), `marker.js` (the `// whippet: … | until: …` parser, used by `check.js`), `check.js` (the `whippet check` pre-commit/CI gate)
+  - `commands/whippet-config.md` — `/whippet-config`, the on-demand full audit (**the product**)
+  - `hooks/` — `hooks.json`, `whippet-config-check.js` (the SessionStart advisory) + its `*.test.js`
+  - `scripts/` — `config-audit.js` (the engine, powers both `/whippet-config` and the advisory) + `config-audit.test.js`
 - `.claude-plugin/marketplace.json` — marketplace entry
-- `scripts/` — dev tooling: `bump.js`, `check-manifests.js`, `bench-report.js`, `on-edit.js`
-- `benchmarks/` — A/B harness, fixtures, `METHODOLOGY.md`
+- `scripts/` — dev tooling: `bump.js`, `check-manifests.js`, `on-edit.js`
+- `benchmarks/config-eval/` — the config-audit A/B eval (corpus + `eval.js`)
 - `.claude/settings.json` — **repo dev hooks** (not the plugin's)
 - `.serena/` — Serena project memory
 
 ## Commands
 
 ```bash
-npm test        # selftest.js + check-manifests.js + judge.js selftest   (CI: Node 22)
+npm test        # config-audit.test.js + whippet-config-check.test.js + check-manifests.js   (CI: Node 22)
 npm run bump    # bump version across all 4 manifests — never edit by hand
-npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-category)
 ```
 
-## Two hook layers — don't conflate them
+## Hooks — two layers, don't conflate them
 
-- **Plugin hooks** (`whippet/hooks/hooks.json`) — ship to users. `SessionStart` →
-  `whippet-activate.js`; `UserPromptSubmit` → `whippet-mode-tracker.js`. Mode logic lives in
-  `whippet-core.js` (default `full`; persisted in flag file `$CLAUDE_CONFIG_DIR/.whippet-active`).
-  `PostToolUse(Edit|Write|MultiEdit)` → `whippet-posttooluse.js` (**one** node spawn doing both
-  per-edit jobs — ~50ms/edit saved vs two hooks, more on Windows) and `Stop` → `whippet-drift-check.js`
-  — code↔docs drift: track edited code vs docs in a per-session state file, surface **one** yellow
-  advisory per wave when code changed but no docs did. Logic in `whippet-drift-core.js`; off with
-  `WHIPPET_DRIFT_OFF=1`, threshold via `WHIPPET_DRIFT_THRESHOLD`.
-  **Autonomous deterministic advisories (2.0):** `SessionStart(startup)` →
-  `whippet-config-check.js` (runs the config audit, speaks **only on errors**, `WHIPPET_CONFIG_OFF=1`);
-  the deps advisory (deps audit when `package.json` changes — new native-equivalent/duplicate findings,
-  deduped per session, `WHIPPET_DEPS_OFF=1`) runs **inside `whippet-posttooluse.js`** (`whippet-deps-core.js`).
-  All reuse the `sessionStatePath(kind)` helper in `whippet-drift-core.js` and the engines in `whippet/scripts/`.
+- **Plugin hook** (`whippet/hooks/hooks.json`) — ships to users. `SessionStart(startup)` →
+  `whippet-config-check.js`: runs the config audit and writes **one** quiet advisory to stdout
+  **only when there are errors** (warnings/info wait for `/whippet-config`). Off with
+  `WHIPPET_CONFIG_OFF=1`. Depends only on `../scripts/config-audit.js`.
 - **Repo dev hook** (`.claude/settings.json`) — local only. `PostToolUse(Edit|Write)` →
   `scripts/on-edit.js` reruns the suite when you touch hooks / scripts / manifests / README and
   blocks (exit 2) on failure. Whippet dogfooding its own "always-on runnable check".
@@ -54,13 +45,12 @@ npm run bench   # aggregate benchmarks/results/* into one scoreboard (CIs, per-c
   `.claude-plugin/marketplace.json`, and the README badge. `check-manifests.js` fails the build on
   any desync, so always `npm run bump` instead of hand-editing.
 - **Hooks must never throw** — they read stdin JSON, exit 0 silently, and speak only when a real
-  check fails (exit 2 feeds stderr back to the agent). Preserve that contract.
+  check fails. Preserve that contract.
 - **Vanilla Node, zero deps** — CommonJS, Node ≥22, no `dependencies` in `package.json`. Don't pull
   a library into hook/script code.
-- **Benchmarks are law** (`benchmarks/METHODOLOGY.md`): every README claim must be backed by a paired
-  A/B (`off` / one-line `baseline` / `whippet`); correctness is a hard gate; **fixtures stay private**
-  (anything public leaks into training); report confidence intervals + per-category splits; never
-  self-report numbers from a manifest.
+- **`config-audit` is detect-only** — it reads config files and reports; it never edits them. Keep it
+  conservative: a finding fires only when a referent is genuinely broken/missing, so the autonomous
+  advisory never nags. New checks ship with cases in `config-audit.test.js`.
 
 ## README — keep it minimal (owner's standing instruction)
 
@@ -68,9 +58,8 @@ The README is **only**: a centered header (logo + a small badge row + a one-line
 italic tagline) + a short paragraph of what the plugin does + the install block.
 That header is **visual polish, not content** — still **nothing else**: no benchmark
 tables, no command lists, no honesty essays, no examples. Keep it accurate (update the
-one paragraph if what the plugin does changes) and benchmark-true (no measured edge the
-A/B doesn't show). The version badge is one of the four synced manifests — `npm run bump`
-moves it, never hand-edit (`check-manifests.js` greps `version-<v>-` in the README).
+one paragraph if what the plugin does changes). The version badge is one of the four synced
+manifests — `npm run bump` moves it, never hand-edit (`check-manifests.js` greps `version-<v>-`).
 
 ## Privacy — never leak private things into the public repo (owner's standing instruction)
 
@@ -83,32 +72,22 @@ This is a **public repo**. Nothing about the owner's private setup belongs in an
 - secrets / tokens / keys, even in examples (use `${ENV_VAR}` placeholders);
 - names of the owner's other projects.
 
-The repo ships **only the product and its public tooling**: the plugin (`whippet/` — skill,
-commands, hooks, scripts), the marketplace wrapper, the dev tooling, and benchmarks with sanitized
-synthetic data. Private working docs (ideas, roadmaps, research, scratch notes) stay **out of git**,
-under the gitignored `research/` or `.scratch/` dirs — never committed. (See `.gitignore`.) This
-complements *fixtures stay private* above: when in doubt, sanitize or keep it local.
+The repo ships **only the product and its public tooling**: the plugin (`whippet/` — command,
+hooks, scripts), the marketplace wrapper, the dev tooling, and the config-eval benchmark with
+sanitized synthetic data. Private working docs (ideas, roadmaps, research, scratch notes) stay
+**out of git**, under the gitignored `research/` or `.scratch/` dirs — never committed. (See
+`.gitignore`.) When in doubt, sanitize or keep it local.
 
 ## Scope discipline (this repo, of all repos)
 
-Whippet's value is a **narrow** scope: leanness where it pays — *the least that actually works,
-and nothing left rotting in place*. Three fronts, one discipline — **autonomous since 2.0**
-(the review/simplify/ledger/deps commands were removed; the value runs as hooks):
-- **Lean code output + terse reporting** — the always-on skill (SessionStart anchor + mode tracker).
-- **Lean dependencies** — a `PostToolUse` hook audits `package.json` when it changes (native-equivalent,
-  declared-but-unused, duplicate-purpose) and surfaces a quiet advisory; same engine powers `whippet check`.
-  Detect-only, deterministic, conservative — covers the gaps the lockfile can't.
-- **Lean setup** — `/whippet-config` audits the Claude Code config for drift (dead plugin/hook/MCP
-  references, fragile local marketplaces, duplicate components, malformed JSON, orphaned files —
-  across `settings.json` and `settings.local.json`); also surfaced **automatically** at session start
-  when there are errors. Detect-only; deterministic; covers the *gaps* the schema can't (referents and runtime).
+Whippet's value is a **narrow** scope: **one front** — auditing the Claude Code setup for the
+drift the schema can't catch. `/whippet-config` (and the SessionStart advisory) audit
+`settings.json` and `settings.local.json` for dead plugin/hook/MCP references, fragile local
+marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files.
+Detect-only, deterministic, conservative — it covers the *gaps* the schema can't (referents and
+runtime).
 
-The deterministic checks (deps, config, the `// whippet:` marker rule) are also composable as
-**`whippet check`** — an exit-coded pre-commit/CI gate (`scripts/check.js`), the mechanizable subset
-of the lean-code front hoisted out of the LLM commands. It composes the existing `audit()` functions,
-never reimplements them; markers/budget scope to the staged diff. Keep it to *aggregating whippet's own
-deterministic audits + a diff budget* — not a linter/formatter/test-runner.
-
-Still **out of scope**: planning, orchestration, general context-engineering — anything that
-doesn't serve leanness. New behavior ships with a runnable check (`selftest.js` or
-`scripts/*.test.js`), and if it makes a public claim, a benchmark to back it.
+Still **out of scope**: lean-code discipline (that's `ponytail` now), dependency auditing, code↔docs
+drift, planning, orchestration — anything that isn't config auditing. New behavior ships with a
+runnable check (`scripts/*.test.js` or `hooks/*.test.js`), and if it makes a public claim, the
+`config-eval` benchmark to back it.

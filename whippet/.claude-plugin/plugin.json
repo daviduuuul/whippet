@@ -1,10 +1,10 @@
 {
   "name": "whippet",
-  "version": "2.1.1",
-  "description": "Autonomous lean discipline for Claude Code: an always-on YAGNI code discipline plus quiet hooks that flag dependency bloat (on package.json edits), config drift (at session start), and code↔docs drift. One command, /whippet-config, for the full setup audit on demand; `whippet check` is an optional pre-commit/CI gate.",
+  "version": "3.0.0",
+  "description": "Config-drift auditor for Claude Code setups: a read-only audit that flags dead plugin/hook/MCP references, fragile local marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files across settings.json and settings.local.json. One command, /whippet-config, runs the full audit on demand; a quiet SessionStart advisory speaks only when there are errors.",
   "author": { "name": "daviduuuul", "url": "https://github.com/daviduuuul" },
   "homepage": "https://github.com/daviduuuul/whippet",
   "repository": "https://github.com/daviduuuul/whippet",
   "license": "MIT",
-  "keywords": ["lean", "yagni", "minimal", "code-quality", "senior", "less-code"]
+  "keywords": ["claude-code", "config", "audit", "settings", "drift-detection", "setup"]
 }

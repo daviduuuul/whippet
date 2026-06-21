@@ -4,10 +4,10 @@
 
 # Whippet
 
-***the least code that actually works — automatically***
+***keeps your Claude Code setup from quietly drifting***
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-d97757?style=flat-square&logo=anthropic&logoColor=white)](https://docs.claude.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-2.1.1-4c8bf5?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-3.0.0-4c8bf5?style=flat-square)](#)
 [![License](https://img.shields.io/badge/license-MIT-3fb950?style=flat-square)](LICENSE)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-555?style=flat-square)](package.json)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
@@ -16,7 +16,7 @@
 
 ---
 
-Whippet keeps your code, dependencies, config, and docs from quietly bloating and drifting — **automatically**. Install it once and it runs on its own: an always-on discipline that writes the least code that actually works, plus quiet background checks that flag a dependency the platform already covers, a Claude setup that has drifted, or docs that fell behind the code. The one command, `/whippet-config`, runs the full setup audit on demand.
+Whippet audits your Claude Code setup for the drift the schema can't catch — dead plugin, hook, and MCP references, fragile local marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files, across `settings.json` and `settings.local.json`. Read-only, deterministic, zero dependencies. Run the full audit on demand with `/whippet-config`; once installed, a quiet advisory at session start speaks up only when your setup has actual errors.
 
 ## Install
 
