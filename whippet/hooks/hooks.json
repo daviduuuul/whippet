@@ -2,55 +2,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-activate.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "startup",
         "hooks": [
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-config-check.js\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-mode-tracker.js\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-posttooluse.js\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-drift-check.js\"",
             "timeout": 5
           }
         ]

@@ -1,6 +1,0 @@
-{"task":"stdlib-uuid","category":"trap_stdlib","arm":"A","model":"claude-opus-4-8","correct":true,"loc_added":8,"files_added":0,"deps_added":0,"trap":"stdlib","session":1,"compaction":1,"lean_compliant":true}
-{"task":"reuse-slugify","category":"trap_reuse","arm":"A","model":"claude-opus-4-8","correct":true,"loc_added":5,"files_added":0,"deps_added":0,"reused":true,"trap":"reuse","session":1,"compaction":2,"lean_compliant":true}
-{"task":"stdlib-uuid","category":"trap_stdlib","arm":"B","model":"claude-opus-4-8","correct":true,"loc_added":3,"files_added":0,"deps_added":0,"trap":"stdlib","session":1,"compaction":1,"lean_compliant":true}
-{"task":"reuse-slugify","category":"trap_reuse","arm":"B","model":"claude-opus-4-8","correct":true,"loc_added":3,"files_added":0,"deps_added":0,"reused":true,"trap":"reuse","session":1,"compaction":2,"lean_compliant":true}
-{"task":"stdlib-uuid","category":"trap_stdlib","arm":"C","model":"claude-opus-4-8","correct":true,"loc_added":3,"files_added":0,"deps_added":0,"trap":"stdlib","session":1,"compaction":1,"lean_compliant":true}
-{"task":"reuse-slugify","category":"trap_reuse","arm":"C","model":"claude-opus-4-8","correct":true,"loc_added":3,"files_added":0,"deps_added":0,"reused":true,"trap":"reuse","session":1,"compaction":2,"lean_compliant":true}
