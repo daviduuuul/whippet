@@ -68,7 +68,6 @@ const DUP_GROUPS = {
   date: ['moment', 'dayjs', 'date-fns', 'luxon', 'js-joda', '@js-temporal/polyfill'],
   'http client': ['axios', 'got', 'node-fetch', 'superagent', 'request', 'ky', 'undici'],
   'test runner': ['jest', 'mocha', 'vitest', 'ava', 'tape', 'jasmine', 'uvu', 'qunit'],
-  bundler: ['webpack', 'rollup', 'esbuild', 'parcel', 'vite'],
   validation: ['joi', 'yup', 'zod', 'ajv', 'superstruct', 'valibot', 'io-ts', 'class-validator', 'runtypes'],
   logger: ['winston', 'pino', 'bunyan', 'log4js', 'loglevel', 'signale', 'consola'],
 };
@@ -172,6 +171,9 @@ function audit(root) {
     const swap = NATIVE[name];
     if (!swap) continue;
     if (floor !== null && floor < swap.sinceNode) continue; // their runtime floor predates the native API
+    // engine unknown: only suggest natives old enough to assume any maintained runtime has them; a
+    // recent one (Node 19+) can't be confirmed, so suppress it rather than emit a misleading advisory
+    if (floor === null && swap.sinceNode > 18) continue;
     const verify = floor === null ? ` (verify your runtime is Node >= ${swap.sinceNode})` : '';
     const note = swap.note ? ` — ${swap.note}` : '';
     add('warning', 'native', `native equivalent available: ${name}`,
