@@ -22,3 +22,4 @@ benchmarks/drift/candidates/
 
 # deps-eval derived output
 benchmarks/deps-eval/disagreements.json
+benchmarks/config-eval/disagreements.json

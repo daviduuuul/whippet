@@ -1,0 +1,3829 @@
+{
+  "count": 82,
+  "scenarios": [
+    {
+      "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "permissions": {
+          "allow": [
+            "Bash(npm run *)",
+            "Bash(git status)",
+            "Bash(git diff:*)",
+            "Read(//home/dev/project/src)",
+            "Edit(src/**)",
+            "WebFetch(domain:docs.anthropic.com)",
+            "mcp__github__*",
+            "mcp__memory__get_*"
+          ],
+          "deny": [
+            "Bash(rm -rf /)",
+            "Read(./.env)",
+            "WebFetch(domain:internal.example.com)"
+          ],
+          "defaultMode": "default"
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh"
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "prettier --write \"$CLAUDE_FILE\" 2>/dev/null || true",
+                  "timeout": 30
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s0"
+    },
+    {
+      "description": "Malformed permission rules in the allow array: an unbalanced-paren Bash rule, an empty-string rule, a bare numeric rule, and a tool name containing spaces. All four are syntactically broken permission entries Claude Code cannot parse. Mixed with valid neighbors so a detector must isolate the bad ones.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(git log)",
+            "Bash(rm",
+            "",
+            "42",
+            "tool name with spaces",
+            "Read(//var/log/app.log)"
+          ],
+          "deny": [
+            "Bash(rm -rf *)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "malformed_permission_rule",
+          "token": "Bash(rm",
+          "note": "Unbalanced parenthesis — opening paren never closed, so the rule cannot be parsed as Tool(specifier)."
+        },
+        {
+          "kind": "malformed_permission_rule",
+          "token": "",
+          "note": "Empty string is not a valid permission rule (no tool name)."
+        },
+        {
+          "kind": "malformed_permission_rule",
+          "token": "42",
+          "note": "A bare number is not a valid tool/permission rule."
+        },
+        {
+          "kind": "malformed_permission_rule",
+          "token": "tool name with spaces",
+          "note": "Tool names cannot contain spaces; this is not a recognizable permission rule."
+        }
+      ],
+      "id": "s1"
+    },
+    {
+      "description": "Same rule appears in BOTH allow and deny. Two genuine overlaps: 'Bash(rm -rf *)' and 'WebFetch(domain:example.com)' are each listed in allow and in deny. Deny wins in Claude Code, so the allow entries are dead — a contradictory config. Other rules are valid and non-overlapping (mcp wildcard, Bash(npm run *)).",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm run *)",
+            "Bash(rm -rf *)",
+            "WebFetch(domain:example.com)",
+            "mcp__playwright__*"
+          ],
+          "deny": [
+            "Bash(rm -rf *)",
+            "WebFetch(domain:example.com)",
+            "Read(./secrets/**)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(rm -rf *)",
+          "note": "Identical rule in both allow and deny; deny takes precedence so the allow entry is contradictory and inert."
+        },
+        {
+          "kind": "allow_deny_overlap",
+          "token": "WebFetch(domain:example.com)",
+          "note": "Same WebFetch rule in allow and deny; deny wins, making the allow entry contradictory."
+        }
+      ],
+      "id": "s2"
+    },
+    {
+      "description": "Fully clean MCP-permission scenario: a project settings.json plus a valid .mcp.json. The allow list uses every tricky-but-valid MCP rule form — whole-server wildcard mcp__server__*, prefixed-tool wildcard mcp__server__get_*, and an exact mcp tool — alongside Read(//path) and WebFetch(dom:...) short form. No drift; both files are correct.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "mcp__serena__*",
+            "mcp__github__get_*",
+            "mcp__memory__search_nodes",
+            "Read(//workspace/data)",
+            "WebFetch(dom:registry.npmjs.org)",
+            "Bash(pnpm install)"
+          ],
+          "ask": [
+            "Bash(docker *)"
+          ]
+        },
+        "enableAllProjectMcpServers": false,
+        "enabledMcpjsonServers": [
+          "serena",
+          "github"
+        ]
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "serena": {
+            "command": "uvx",
+            "args": [
+              "--from",
+              "git+https://github.com/oraios/serena",
+              "serena-mcp-server"
+            ]
+          },
+          "github": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp/"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s3"
+    },
+    {
+      "description": "Permission drift combined with an invalid defaultMode. allow array has a malformed rule (closing paren but no opening — 'Bash rm)') and a tool-name-with-spaces entry; defaultMode is set to 'acceptAll' which is not in the enum (valid values: acceptEdits/auto/bypassPermissions/default/dontAsk/plan). One allow/deny overlap on 'Bash(curl *)' is also planted. Valid rules surround them.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm run build)",
+            "Bash rm)",
+            "my custom tool",
+            "Bash(curl *)",
+            "mcp__context7__*"
+          ],
+          "deny": [
+            "Bash(curl *)",
+            "Bash(sudo *)"
+          ],
+          "defaultMode": "acceptAll"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "malformed_permission_rule",
+          "token": "Bash rm)",
+          "note": "Closing paren without an opening paren; not a parseable Tool(specifier) rule."
+        },
+        {
+          "kind": "malformed_permission_rule",
+          "token": "my custom tool",
+          "note": "Tool name with spaces — not a valid permission rule."
+        },
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(curl *)",
+          "note": "Present in both allow and deny; deny wins, allow entry is dead."
+        },
+        {
+          "kind": "invalid_default_mode",
+          "token": "acceptAll",
+          "note": "Not a valid permissions.defaultMode; enum is acceptEdits/auto/bypassPermissions/default/dontAsk/plan."
+        }
+      ],
+      "id": "s4"
+    },
+    {
+      "description": "Clean settings.local.json with valid permissions plus a top-level settings.json that is also clean. The local file tightens deny and adds personal allows including a Read(//absolute) and an exact Bash with a colon-prefix wildcard. Tests that detector does not invent overlaps across files when allow and deny differ, and does not flag valid forms.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(git *)",
+            "Edit(.claude/**)",
+            "mcp__memory__*"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(node:*)",
+            "Read(//tmp/scratch)",
+            "WebFetch(domain:localhost)"
+          ],
+          "deny": [
+            "Bash(git push --force*)",
+            "Read(//home/dev/.ssh/**)"
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [],
+      "id": "s5"
+    },
+    {
+      "description": "MCP transport drift in .mcp.json paired with otherwise-valid permissions. One server uses transport type 'websocket' (not a supported Claude Code MCP transport — only stdio/sse/http), one stdio-style server has neither command nor url, and one http-style server declares BOTH command and url (ambiguous transport). settings.json permissions are clean tricky-valid rules.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "mcp__weather__get_*",
+            "mcp__db__*",
+            "Bash(npm run test)",
+            "WebFetch(domain:api.weather.gov)"
+          ],
+          "deny": [
+            "Bash(rm -rf ~/*)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "weather": {
+            "type": "websocket",
+            "url": "wss://weather.example.com/mcp"
+          },
+          "db": {
+            "args": [
+              "--port",
+              "5432"
+            ]
+          },
+          "hybrid": {
+            "type": "http",
+            "command": "node",
+            "url": "https://hybrid.example.com/mcp"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_invalid_transport",
+          "token": "weather",
+          "note": "transport type 'websocket' is not supported; Claude Code MCP transports are stdio, sse, http."
+        },
+        {
+          "kind": "mcp_no_transport",
+          "token": "db",
+          "note": "Server has neither command (stdio) nor url (remote) — no usable transport."
+        },
+        {
+          "kind": "mcp_command_and_url",
+          "token": "hybrid",
+          "note": "Declares both command and url; transport is ambiguous."
+        }
+      ],
+      "id": "s6"
+    },
+    {
+      "description": "Mixed bag: a misspelled top-level key 'permisions' (should be 'permissions') so the entire permission block is silently ignored, plus an invalid autoUpdatesChannel value 'beta'. To keep the trap sharp there is ALSO a correctly-spelled 'permissions' block with valid tricky rules (mcp wildcard, Bash(npm run *)) that does apply — the typo'd sibling is the dead one.",
+      "settings": {
+        "permisions": {
+          "allow": [
+            "Bash(rm -rf *)",
+            "mcp__github__*"
+          ]
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run *)",
+            "mcp__serena__find_*",
+            "Read(//srv/app)"
+          ],
+          "deny": [
+            "Bash(shutdown *)"
+          ]
+        },
+        "autoUpdatesChannel": "beta"
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "permisions",
+          "note": "Misspelling of 'permissions'; the block is silently ignored, so its allow rules never take effect."
+        },
+        {
+          "kind": "invalid_autoupdates_channel",
+          "token": "beta",
+          "note": "Not a valid autoUpdatesChannel; enum is latest/stable/rc."
+        }
+      ],
+      "id": "s7"
+    },
+    {
+      "description": "Clean baseline: a tidy settings.json with valid PreToolUse, PostToolUse, and SessionStart hooks. Good regex matchers, command type, positive integer timeouts. No drift — measures false positives.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "permissions": {
+          "allow": [
+            "Bash(npm run build)",
+            "Bash(npm run test:*)",
+            "Read(//c/ClaudeCode/**)"
+          ],
+          "deny": [
+            "Read(./.env)",
+            "Read(./secrets/**)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\bash-guard.ps1",
+                  "timeout": 15
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit|MultiEdit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\write-pre-guard.ps1",
+                  "timeout": 10
+                }
+              ]
+            }
+          ],
+          "SessionStart": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\config-drift-guard.ps1",
+                  "timeout": 30
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s8"
+    },
+    {
+      "description": "settings.json with an unknown hook event name 'PreToolUseHook' (real event is PreToolUse). Claude Code silently ignores the unrecognized event key, so the guard never runs.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(git status)",
+            "Bash(git diff:*)"
+          ]
+        },
+        "hooks": {
+          "PreToolUseHook": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./scripts/audit-bash.js",
+                  "timeout": 20
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./scripts/format.js",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "unknown_hook_event",
+          "token": "PreToolUseHook",
+          "note": "Not a valid hook event; the real event is 'PreToolUse'. Silently ignored, hook never fires."
+        }
+      ],
+      "id": "s9"
+    },
+    {
+      "description": "settings.json with a PreToolUse matcher that is an invalid regex (unbalanced group '(Write|Edit'). The matcher fails to compile so the matcher cannot be applied.",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "(Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File ./hooks/pre-edit.ps1",
+                  "timeout": 12
+                }
+              ]
+            }
+          ]
+        },
+        "permissions": {
+          "defaultMode": "default"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_hook_matcher",
+          "token": "(Write|Edit",
+          "note": "Unbalanced parenthesis — regex does not compile."
+        }
+      ],
+      "id": "s10"
+    },
+    {
+      "description": "settings.json with a command-type hook that has no 'command' field, plus a clean Notification hook. The empty-command entry is a no-op the harness cannot execute.",
+      "settings": {
+        "hooks": {
+          "Notification": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File ./hooks/notify.ps1",
+                  "timeout": 8
+                }
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "hook_missing_command",
+          "token": "Stop",
+          "note": "Hook entry has type 'command' but no 'command' string — nothing to run."
+        }
+      ],
+      "id": "s11"
+    },
+    {
+      "description": "settings.json with two bad timeouts: a float timeout (2.5) on PostToolUse and a non-positive timeout (0) on PreToolUse. Timeouts must be positive integers (seconds).",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./check.sh",
+                  "timeout": 0
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./format.sh",
+                  "timeout": 2.5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "PreToolUse",
+          "note": "timeout 0 is non-positive; must be a positive integer number of seconds."
+        },
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "PostToolUse",
+          "note": "timeout 2.5 is a float; timeout must be an integer."
+        }
+      ],
+      "id": "s12"
+    },
+    {
+      "description": "settings.json with an unrecognized hook type 'shell' (only 'command' is supported). The whole hook entry is unusable.",
+      "settings": {
+        "hooks": {
+          "UserPromptSubmit": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "shell",
+                  "command": "./scripts/log-prompt.sh",
+                  "timeout": 5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "unknown_hook_type",
+          "token": "shell",
+          "note": "Unrecognized hook type; Claude Code only supports type 'command'."
+        }
+      ],
+      "id": "s13"
+    },
+    {
+      "description": "Clean tricky case: SessionStart and SessionEnd hooks with empty-string matchers (valid — matches all), regex alternation matcher with anchors, and large but valid integer timeout. Nothing should be flagged.",
+      "settings": {
+        "hooks": {
+          "SessionStart": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\session-handoff.ps1",
+                  "timeout": 45
+                }
+              ]
+            }
+          ],
+          "SessionEnd": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\session-handoff-prune.ps1",
+                  "timeout": 60
+                }
+              ]
+            }
+          ],
+          "PreToolUse": [
+            {
+              "matcher": "^(Bash|Write|Edit|MultiEdit)$",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node guard.js",
+                  "timeout": 600
+                }
+              ]
+            }
+          ]
+        },
+        "permissions": {
+          "defaultMode": "plan"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s14"
+    },
+    {
+      "description": "settings.json with a PreCompact hook that has a valid block, but settings.local.json plants two problems: an unknown event 'onStop' and a PostToolUse matcher with an invalid regex (dangling quantifier '*+').",
+      "settings": {
+        "hooks": {
+          "PreCompact": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./scripts/save-context.sh",
+                  "timeout": 20
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": {
+        "hooks": {
+          "onStop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./scripts/cleanup.sh",
+                  "timeout": 10
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write*+",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./scripts/lint.sh",
+                  "timeout": 15
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "unknown_hook_event",
+          "token": "onStop",
+          "note": "Not a valid hook event; nearest real event is 'Stop'. Silently ignored."
+        },
+        {
+          "kind": "invalid_hook_matcher",
+          "token": "Write*+",
+          "note": "Dangling/double quantifier '*+' — invalid regex, does not compile."
+        }
+      ],
+      "id": "s15"
+    },
+    {
+      "description": "settings.json combining a negative timeout and a clean SubagentStop hook. The negative timeout (-5) on the SessionStart hook is invalid; the SubagentStop block is valid and must not be flagged.",
+      "settings": {
+        "hooks": {
+          "SessionStart": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./init.sh",
+                  "timeout": -5
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./agent-done.sh",
+                  "timeout": 12
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "SessionStart",
+          "note": "timeout -5 is negative; must be a positive integer."
+        }
+      ],
+      "id": "s16"
+    },
+    {
+      "description": "Fully clean multi-file scenario: settings.json with valid hooks across several events, a settings.local.json adding one more valid PostToolUse hook, and a valid stdio .mcp.json server. No drift anywhere — tests false positives across all three files.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm run build)",
+            "WebSearch"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\destructive-bash-guard.ps1",
+                  "timeout": 15
+                }
+              ]
+            }
+          ],
+          "UserPromptSubmit": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\inject-context.ps1",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": {
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Edit|MultiEdit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "pwsh -File C:\\ClaudeCode\\.claude\\hooks\\format-on-save.ps1",
+                  "timeout": 20
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "memory": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-memory"
+            ],
+            "env": {
+              "MEMORY_FILE_PATH": "C:\\ClaudeCode\\.claude\\memory.jsonl"
+            }
+          }
+        }
+      },
+      "issues": [],
+      "id": "s17"
+    },
+    {
+      "description": "Clean baseline: a valid stdio MCP server (command+args+env) plus a valid http remote server (type+url). Both transports are well-formed; settings.json approves them via enabledMcpjsonServers. No drift — measures false positives on a perfectly normal multi-transport .mcp.json.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "enabledMcpjsonServers": [
+          "filesystem",
+          "linear"
+        ],
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(npm run *)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/home/dev/projects"
+            ],
+            "env": {}
+          },
+          "linear": {
+            "type": "http",
+            "url": "https://mcp.linear.app/mcp"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s18"
+    },
+    {
+      "description": "Clean traps: an explicit type:\"stdio\" server (redundant but valid) and an sse remote server (type+url). Both are valid forms that a naive detector might misflag. settingsLocal disables one server. No drift.",
+      "settings": {
+        "enableAllProjectMcpServers": true,
+        "permissions": {
+          "defaultMode": "acceptEdits"
+        }
+      },
+      "settingsLocal": {
+        "disabledMcpjsonServers": [
+          "sentry"
+        ]
+      },
+      "mcp": {
+        "mcpServers": {
+          "github": {
+            "type": "stdio",
+            "command": "docker",
+            "args": [
+              "run",
+              "-i",
+              "--rm",
+              "-e",
+              "GITHUB_PERSONAL_ACCESS_TOKEN",
+              "ghcr.io/github/github-mcp-server"
+            ],
+            "env": {
+              "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+            }
+          },
+          "sentry": {
+            "type": "sse",
+            "url": "https://mcp.sentry.dev/sse"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s19"
+    },
+    {
+      "description": "One server declares an unknown transport type \"websocket\" (with a url) — Claude Code only recognizes stdio/http/sse, so this server is silently dropped. A clean valid stdio server sits alongside it as a trap.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "memory": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-memory"
+            ]
+          },
+          "realtime-feed": {
+            "type": "websocket",
+            "url": "wss://feed.internal.example.com/mcp"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_invalid_transport",
+          "token": "realtime-feed",
+          "note": "type \"websocket\" is not a recognized MCP transport; Claude Code supports only stdio, http, and sse, so this server is ignored."
+        }
+      ],
+      "id": "s20"
+    },
+    {
+      "description": "A server object with no command, no url, and no type at all — there is no way to determine the transport, so the entry is meaningless. A valid http server is included as a clean trap.",
+      "settings": {
+        "enabledMcpjsonServers": [
+          "docs",
+          "weather"
+        ]
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "docs": {
+            "type": "http",
+            "url": "https://docs-mcp.example.com/api"
+          },
+          "weather": {
+            "args": [
+              "--port",
+              "8080"
+            ],
+            "env": {
+              "WEATHER_API_KEY": "${WEATHER_KEY}"
+            }
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_no_transport",
+          "token": "weather",
+          "note": "server has neither command (stdio) nor url (http/sse) nor a type; no transport can be resolved so the server cannot start."
+        }
+      ],
+      "id": "s21"
+    },
+    {
+      "description": "A single server that specifies BOTH command and url — a contradictory config mixing stdio and remote transports. A valid stdio server is present as a trap.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(git *)"
+          ],
+          "defaultMode": "default"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "postgres": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-postgres",
+              "postgresql://localhost/mydb"
+            ]
+          },
+          "notion": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@notionhq/notion-mcp-server"
+            ],
+            "url": "https://mcp.notion.com/mcp"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_command_and_url",
+          "token": "notion",
+          "note": "server defines both command (stdio) and url (remote) — these are mutually exclusive transports and the config is ambiguous/invalid."
+        }
+      ],
+      "id": "s22"
+    },
+    {
+      "description": "A stdio server (explicit type:\"stdio\") that is missing the required command field — only args/env are present, so there is nothing to launch. A valid sse server is included as a clean trap.",
+      "settings": {
+        "enableAllProjectMcpServers": true
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "puppeteer": {
+            "type": "stdio",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-puppeteer"
+            ],
+            "env": {
+              "PUPPETEER_HEADLESS": "true"
+            }
+          },
+          "asana": {
+            "type": "sse",
+            "url": "https://mcp.asana.com/sse"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_missing_command",
+          "token": "puppeteer",
+          "note": "type stdio requires a command to spawn; only args/env are given, so the server cannot be started."
+        }
+      ],
+      "id": "s23"
+    },
+    {
+      "description": "An http server missing its url, and separately an sse server also missing its url — both remote transports are unusable without an endpoint. A valid stdio server is present as a trap. Two planted defects in one file.",
+      "settings": {
+        "enabledMcpjsonServers": [
+          "fetch",
+          "grafana",
+          "stripe"
+        ],
+        "permissions": {
+          "allow": [
+            "WebFetch(domain:example.com)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "fetch": {
+            "command": "uvx",
+            "args": [
+              "mcp-server-fetch"
+            ]
+          },
+          "grafana": {
+            "type": "http",
+            "headers": {
+              "Authorization": "Bearer ${GRAFANA_TOKEN}"
+            }
+          },
+          "stripe": {
+            "type": "sse"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_missing_url",
+          "token": "grafana",
+          "note": "type http requires a url endpoint; only headers are given, so the server has no address to connect to."
+        },
+        {
+          "kind": "mcp_missing_url",
+          "token": "stripe",
+          "note": "type sse requires a url endpoint; none is provided, so the remote server cannot connect."
+        }
+      ],
+      "id": "s24"
+    },
+    {
+      "description": "Mixed bag stress test: one valid stdio + one valid http server (clean traps), plus three distinct transport defects — an unknown transport \"grpc\", a server with both command and url, and an sse server missing url. Settings.json itself is clean.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Edit"
+          ],
+          "deny": [
+            "Bash(rm -rf *)"
+          ]
+        },
+        "enableAllProjectMcpServers": true
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(docker *)"
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "slack": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-slack"
+            ],
+            "env": {
+              "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+              "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
+            }
+          },
+          "atlassian": {
+            "type": "http",
+            "url": "https://mcp.atlassian.com/v1/sse"
+          },
+          "internal-rpc": {
+            "type": "grpc",
+            "url": "grpc://rpc.internal.example.com:50051"
+          },
+          "playwright": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@playwright/mcp@latest"
+            ],
+            "url": "https://playwright-mcp.example.com/mcp"
+          },
+          "figma": {
+            "type": "sse"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_invalid_transport",
+          "token": "internal-rpc",
+          "note": "type \"grpc\" is not a supported MCP transport (only stdio/http/sse); the server is silently ignored."
+        },
+        {
+          "kind": "mcp_command_and_url",
+          "token": "playwright",
+          "note": "server defines both command and url, mixing stdio and remote transports — invalid."
+        },
+        {
+          "kind": "mcp_missing_url",
+          "token": "figma",
+          "note": "type sse with no url — the remote endpoint is missing so the server cannot connect."
+        }
+      ],
+      "id": "s25"
+    },
+    {
+      "description": "Clean baseline: a realistic personal ~/.claude/settings.json with many real, sometimes-tricky top-level keys (statusLine, permissions, env, model, includeCoAuthoredBy, cleanupPeriodDays, outputStyle, $schema, autoUpdatesChannel). Every key is spelled correctly. No drift — a pure false-positive trap.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "model": "sonnet",
+        "outputStyle": "default",
+        "includeCoAuthoredBy": true,
+        "cleanupPeriodDays": 45,
+        "autoUpdatesChannel": "stable",
+        "env": {
+          "BASH_DEFAULT_TIMEOUT_MS": "120000",
+          "DISABLE_TELEMETRY": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run test)",
+            "Bash(git *)",
+            "Read",
+            "Edit(.claude/**)"
+          ],
+          "deny": [
+            "Bash(rm -rf *)"
+          ],
+          "defaultMode": "default",
+          "additionalDirectories": [
+            "../shared-lib"
+          ]
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh",
+          "padding": 1
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s26"
+    },
+    {
+      "description": "Top-level key typos that Claude Code silently ignores: 'enabledPlugin' (missing s), 'statusline' (wrong case — must be statusLine), 'permission' (singular), and 'hook' (singular). The correctly-spelled 'env' and 'model' are present as clean controls so the detector must not flag those.",
+      "settings": {
+        "model": "opus",
+        "env": {
+          "FORCE_COLOR": "1"
+        },
+        "enabledPlugin": {
+          "formatter@anthropic-tools": true
+        },
+        "statusline": {
+          "type": "command",
+          "command": "~/.claude/hud.sh"
+        },
+        "permission": {
+          "allow": [
+            "Bash(ls *)"
+          ]
+        },
+        "hook": {
+          "Stop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo done"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "enabledPlugin",
+          "note": "Misspelled enabledPlugins (missing trailing 's'); plugins silently not enabled."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "statusline",
+          "note": "Wrong casing; the real key is statusLine (capital L). Status line silently ignored."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "permission",
+          "note": "Singular; the real key is permissions. Entire allow list silently ignored."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "hook",
+          "note": "Singular; the real key is hooks. The Stop hook never runs."
+        }
+      ],
+      "id": "s27"
+    },
+    {
+      "description": "env-name and near-miss key typos. 'enviroment' (misspelled env), 'modle' (misspelled model), 'cleanupPeriodDay' (missing s), and 'autoUpdateChannel' (missing the second 's' in Updates → should be autoUpdatesChannel). Correct 'includeCoAuthoredBy' and a valid 'permissions' block are clean controls.",
+      "settings": {
+        "modle": "haiku",
+        "enviroment": {
+          "NODE_ENV": "development"
+        },
+        "cleanupPeriodDay": 30,
+        "autoUpdateChannel": "latest",
+        "includeCoAuthoredBy": false,
+        "permissions": {
+          "allow": [
+            "Bash(docker *)"
+          ],
+          "defaultMode": "acceptEdits"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "modle",
+          "note": "Transposed letters; real key is model. Model override silently ignored."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "enviroment",
+          "note": "Misspelled and wrong name; real key is env. Env vars never set."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "cleanupPeriodDay",
+          "note": "Missing trailing 's'; real key is cleanupPeriodDays."
+        },
+        {
+          "kind": "typo_top_level_key",
+          "token": "autoUpdateChannel",
+          "note": "Missing 's' in Updates; real key is autoUpdatesChannel. Release channel silently ignored."
+        }
+      ],
+      "id": "s28"
+    },
+    {
+      "description": "Value-level drift, not key typos. permissions.defaultMode is an invalid enum value, autoUpdatesChannel is an invalid channel, and statusLine.type is wrong (must be the literal 'command'). All keys are spelled correctly so a pure typo detector should stay silent on the keys — these are semantic/enum problems.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(git status)"
+          ],
+          "defaultMode": "ask"
+        },
+        "autoUpdatesChannel": "nightly",
+        "statusLine": {
+          "type": "script",
+          "command": "~/.claude/line.sh"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_default_mode",
+          "token": "ask",
+          "note": "defaultMode must be one of acceptEdits/auto/bypassPermissions/default/dontAsk/plan. 'ask' is not a valid mode (ask is a permissions sub-array, not a mode)."
+        },
+        {
+          "kind": "invalid_autoupdates_channel",
+          "token": "nightly",
+          "note": "autoUpdatesChannel enum is latest/stable/rc only. 'nightly' is invalid."
+        },
+        {
+          "kind": "invalid_statusline_type",
+          "token": "script",
+          "note": "statusLine.type is a const 'command'. 'script' breaks the status line."
+        }
+      ],
+      "id": "s29"
+    },
+    {
+      "description": "Clean, fully-valid config that uses several real but uncommon hook events and a valid hooks block — a strong false-positive trap. SessionStart and SubagentStop are genuine events; the Write|Edit matcher and command hooks with positive timeouts are all valid. enabledPlugins is correctly an object (left empty so no install tree is needed).",
+      "settings": {
+        "enabledPlugins": {},
+        "alwaysThinkingEnabled": true,
+        "hooks": {
+          "SessionStart": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "~/.claude/hooks/handoff.ps1",
+                  "timeout": 20
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "prettier --write \"$f\"",
+                  "timeout": 30
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo subagent done"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s30"
+    },
+    {
+      "description": "Hooks-block drift mixed with valid hooks. 'PreCommit' and 'OnFileSave' are not real hook events (silently ignored). Under the valid PostToolUse event one hook omits the required 'command' field, and another sets a non-positive timeout of 0. The valid PreToolUse/Bash command hook is a clean control.",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "jq -r '.tool_input.command' >> ~/.claude/bash.log"
+                }
+              ]
+            }
+          ],
+          "PreCommit": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "npm run lint"
+                }
+              ]
+            }
+          ],
+          "OnFileSave": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "gofmt -w ."
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "timeout": 15
+                },
+                {
+                  "type": "command",
+                  "command": "eslint --fix .",
+                  "timeout": 0
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "unknown_hook_event",
+          "token": "PreCommit",
+          "note": "Not a Claude Code hook event; silently ignored. There is no git-commit hook event."
+        },
+        {
+          "kind": "unknown_hook_event",
+          "token": "OnFileSave",
+          "note": "Not a real event name; the file-write event is PostToolUse with a Write|Edit matcher."
+        },
+        {
+          "kind": "hook_missing_command",
+          "token": "PostToolUse",
+          "note": "First command hook under PostToolUse/Write has no 'command' field; command type requires command."
+        },
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "PostToolUse",
+          "note": "Second hook under PostToolUse/Write sets timeout: 0; timeout must be > 0."
+        }
+      ],
+      "id": "s31"
+    },
+    {
+      "description": "Permission rule drift plus an allow/deny overlap, with valid rules mixed in. The malformed rule 'Bash(rm -rf' has an unbalanced parenthesis. 'Bash(git push)' appears in both allow and deny (deny wins, contradictory intent). Valid 'Read', 'Edit(src/**)' and a correct 'Bash(npm *)' allow are clean controls. enabledMcpjsonServers is a valid top-level key used correctly.",
+      "settings": {
+        "enabledMcpjsonServers": [
+          "memory",
+          "serena"
+        ],
+        "permissions": {
+          "allow": [
+            "Read",
+            "Edit(src/**)",
+            "Bash(npm *)",
+            "Bash(git push)"
+          ],
+          "deny": [
+            "Bash(rm -rf",
+            "Bash(git push)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "malformed_permission_rule",
+          "token": "Bash(rm -rf",
+          "note": "Unbalanced parenthesis — missing closing ')'. The rule fails to parse and does not protect."
+        },
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(git push)",
+          "note": "Same exact rule appears in both allow and deny; deny takes precedence, so the allow is dead/contradictory."
+        }
+      ],
+      "id": "s32"
+    },
+    {
+      "description": "settings.json is fully clean with a valid statusLine and empty enabledPlugins object. The accompanying .mcp.json carries the drift: 'docs-server' declares transport 'websocket' (not a valid MCP transport), 'broken-stdio' has neither command nor url, and 'both-fields' sets command AND url at once. A correct stdio server ('memory') and a correct http server ('linear') are clean controls.",
+      "settings": {
+        "enabledPlugins": {},
+        "enableAllProjectMcpServers": false,
+        "statusLine": {
+          "type": "command",
+          "command": "npx ccusage statusline"
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(pytest *)"
+          ],
+          "defaultMode": "plan"
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "memory": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-memory"
+            ]
+          },
+          "linear": {
+            "type": "http",
+            "url": "https://mcp.linear.app/sse"
+          },
+          "docs-server": {
+            "type": "websocket",
+            "url": "wss://docs.example.com/mcp"
+          },
+          "broken-stdio": {
+            "args": [
+              "--stdio"
+            ]
+          },
+          "both-fields": {
+            "command": "node",
+            "args": [
+              "server.js"
+            ],
+            "url": "https://example.com/mcp"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_invalid_transport",
+          "token": "docs-server",
+          "note": "type 'websocket' is not a supported MCP transport (valid: stdio, http, sse)."
+        },
+        {
+          "kind": "mcp_no_transport",
+          "token": "broken-stdio",
+          "note": "Has neither 'command' (stdio) nor 'url' (http/sse); cannot start."
+        },
+        {
+          "kind": "mcp_command_and_url",
+          "token": "both-fields",
+          "note": "Sets both 'command' and 'url'; a server is either stdio (command) or remote (url), not both."
+        }
+      ],
+      "id": "s33"
+    },
+    {
+      "description": "enabledPlugins is the wrong shape: it is an array of strings instead of an object map of plugin-id@marketplace -> boolean. Claude Code silently ignores it so no plugins enable. The rest (model, env, valid permissions) is correct as clean controls.",
+      "settings": {
+        "model": "opus",
+        "env": {
+          "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+        },
+        "enabledPlugins": [
+          "whippet@local",
+          "impeccable@local"
+        ],
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(git log *)"
+          ],
+          "defaultMode": "default"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "enabledplugins_not_object",
+          "token": "enabledPlugins",
+          "note": "Must be an object map { \"plugin@marketplace\": true }; an array of strings is silently ignored."
+        }
+      ],
+      "id": "s34"
+    },
+    {
+      "description": "MCP missing-field drift with valid neighbors. 'analytics' declares type 'stdio' but has no 'command'. 'remote-api' declares type 'http' but has no 'url'. A correct stdio server ('filesystem') and a correct sse server ('grafana') are clean controls. settings.json itself is clean and minimal.",
+      "settings": {
+        "includeCoAuthoredBy": true,
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(node *)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/data"
+            ]
+          },
+          "grafana": {
+            "type": "sse",
+            "url": "https://grafana.example.com/mcp/sse"
+          },
+          "analytics": {
+            "type": "stdio",
+            "args": [
+              "run",
+              "analytics-mcp"
+            ]
+          },
+          "remote-api": {
+            "type": "http"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_missing_command",
+          "token": "analytics",
+          "note": "type 'stdio' requires a 'command' field; only args is present."
+        },
+        {
+          "kind": "mcp_missing_url",
+          "token": "remote-api",
+          "note": "type 'http' requires a 'url' field; none provided."
+        }
+      ],
+      "id": "s35"
+    },
+    {
+      "description": "Clean baseline: a personal global settings.json using acceptEdits default mode and the stable auto-update channel, with a valid command statusLine. Every enum value here is legal. No drift.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "model": "sonnet",
+        "permissions": {
+          "allow": [
+            "Bash(npm run *)",
+            "Bash(git status)",
+            "Read"
+          ],
+          "deny": [
+            "Bash(rm -rf *)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "autoUpdatesChannel": "stable",
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh",
+          "padding": 1
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s36"
+    },
+    {
+      "description": "Invalid permissions.defaultMode: 'autoAccept' is not a member of the closed set. The author meant acceptEdits but typed a plausible-sounding alias. Claude Code rejects the value and falls back to the built-in default. Everything else (latest channel, valid statusLine) is clean.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Edit",
+            "Bash(pnpm *)"
+          ],
+          "defaultMode": "autoAccept"
+        },
+        "autoUpdatesChannel": "latest",
+        "statusLine": {
+          "type": "command",
+          "command": "npx ccstatusline@latest"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_default_mode",
+          "token": "autoAccept",
+          "note": "permissions.defaultMode must be one of default/acceptEdits/plan/auto/dontAsk/bypassPermissions; 'autoAccept' is not in the enum and is silently ignored."
+        }
+      ],
+      "id": "s37"
+    },
+    {
+      "description": "Tricky clean trap: defaultMode 'dontAsk', autoUpdatesChannel 'rc', and a 'bypassPermissions' override in the local file are ALL valid enum members and must NOT be flagged. This measures false positives on the less-common-but-legal values.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(docker compose *)",
+            "Bash(make *)"
+          ],
+          "defaultMode": "dontAsk"
+        },
+        "autoUpdatesChannel": "rc"
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "bypassPermissions"
+        }
+      },
+      "mcp": null,
+      "issues": [],
+      "id": "s38"
+    },
+    {
+      "description": "Invalid autoUpdatesChannel: 'beta' is not a release channel. Valid channels are latest, stable, rc. The defaultMode 'plan' and the statusLine are both fine — the only drift is the channel value.",
+      "settings": {
+        "permissions": {
+          "defaultMode": "plan",
+          "allow": [
+            "Read",
+            "Grep",
+            "Glob"
+          ]
+        },
+        "autoUpdatesChannel": "beta",
+        "statusLine": {
+          "type": "command",
+          "command": "/usr/local/bin/claude-status"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_autoupdates_channel",
+          "token": "beta",
+          "note": "autoUpdatesChannel enum is latest/stable/rc; 'beta' is not valid and is ignored, so the channel silently stays at its default."
+        }
+      ],
+      "id": "s39"
+    },
+    {
+      "description": "Invalid statusLine.type: set to 'static' (with a 'text' field) instead of the required const 'command'. statusLine.type only accepts 'command', and the object requires a 'command' string. This whole statusLine is malformed and the custom status line will not render. The auto default mode is valid.",
+      "settings": {
+        "permissions": {
+          "defaultMode": "auto"
+        },
+        "statusLine": {
+          "type": "static",
+          "text": "[my-project] $(git branch --show-current)"
+        },
+        "autoUpdatesChannel": "stable"
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_statusline_type",
+          "token": "static",
+          "note": "statusLine.type is a const 'command'; 'static' is invalid and the statusLine also lacks the required 'command' field, so no custom status line renders."
+        }
+      ],
+      "id": "s40"
+    },
+    {
+      "description": "Two independent enum drifts in one file: defaultMode 'ask' (a permission-rule keyword, not a mode value) and statusLine.type 'shell' (should be 'command'). A real developer conflated the permissions.ask array name with a mode and guessed the statusLine type. The stable channel is clean.",
+      "settings": {
+        "permissions": {
+          "ask": [
+            "Write(/etc/*)"
+          ],
+          "defaultMode": "ask"
+        },
+        "autoUpdatesChannel": "stable",
+        "statusLine": {
+          "type": "shell",
+          "command": "~/.claude/bin/statusline"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_default_mode",
+          "token": "ask",
+          "note": "'ask' is a permissions list name, not a defaultMode enum member (default/acceptEdits/plan/auto/dontAsk/bypassPermissions); silently ignored."
+        },
+        {
+          "kind": "invalid_statusline_type",
+          "token": "shell",
+          "note": "statusLine.type must be the const 'command'; 'shell' is invalid and disables the custom status line."
+        }
+      ],
+      "id": "s41"
+    },
+    {
+      "description": "Clean project + local pair with a valid stdio MCP server. settings.json uses default mode and an 'rc' channel (valid); settings.local.json bumps defaultMode to acceptEdits (valid override). The .mcp.json stdio server has command+args and no url, which is correct. No drift anywhere — pure false-positive bait, especially around the valid 'rc' channel and the dual-file permission override.",
+      "settings": {
+        "permissions": {
+          "defaultMode": "default",
+          "allow": [
+            "Bash(npx tsc *)",
+            "Read"
+          ]
+        },
+        "autoUpdatesChannel": "rc",
+        "enableAllProjectMcpServers": false
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "acceptEdits"
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "node ./scripts/statusline.mjs"
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "./src"
+            ]
+          }
+        }
+      },
+      "issues": [],
+      "id": "s42"
+    },
+    {
+      "description": "Invalid defaultMode placed in the LOCAL settings file: 'readonly' is not a mode (the closest valid intent is 'plan'). The project settings.json itself is clean (valid bypassPermissions mode and stable channel and valid statusLine). The drift sits only in settings.local.json, so the token is the local override value.",
+      "settings": {
+        "permissions": {
+          "defaultMode": "bypassPermissions",
+          "allow": [
+            "Bash(*)"
+          ]
+        },
+        "autoUpdatesChannel": "stable",
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh"
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "readonly"
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_default_mode",
+          "token": "readonly",
+          "note": "permissions.defaultMode 'readonly' is not in the enum (default/acceptEdits/plan/auto/dontAsk/bypassPermissions); the local override is ignored, leaving the project's bypassPermissions in effect."
+        }
+      ],
+      "id": "s43"
+    },
+    {
+      "description": "Polyglot monorepo hub (TS + Python + Rust). Rich permissions, full hook suite, a statusLine, MCP servers for github/postgres. CLEAN — every key, rule, hook, and transport is valid. Includes tricky-but-valid traps: a WebFetch domain rule, an mcp__ tool permission, an http MCP with explicit type, and a hook with no matcher on a non-tool event.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 45,
+        "includeCoAuthoredBy": true,
+        "env": {
+          "BASH_DEFAULT_TIMEOUT_MS": "60000",
+          "DISABLE_TELEMETRY": "1",
+          "NODE_OPTIONS": "--max-old-space-size=4096"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run build)",
+            "Bash(npm run test:*)",
+            "Bash(cargo build *)",
+            "Bash(cargo test *)",
+            "Bash(uv run pytest *)",
+            "Read(./src/**)",
+            "Edit(./src/**)",
+            "WebFetch(domain:docs.rs)",
+            "mcp__github__search_code"
+          ],
+          "deny": [
+            "Read(./.env)",
+            "Read(./.env.*)",
+            "Bash(rm -rf *)"
+          ],
+          "ask": [
+            "Bash(git push *)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "python3 .claude/hooks/bash_audit.py",
+                  "timeout": 15
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Edit|MultiEdit|Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "npx prettier --write \"$CLAUDE_FILE_PATHS\""
+                }
+              ]
+            }
+          ],
+          "SessionStart": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": ".claude/hooks/load-context.sh",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh",
+          "padding": 0
+        },
+        "autoUpdatesChannel": "stable"
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(docker compose up *)",
+            "Bash(docker compose down)"
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "github": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+              "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+            }
+          },
+          "postgres": {
+            "command": "uvx",
+            "args": [
+              "mcp-server-postgres",
+              "postgresql://localhost/appdb"
+            ]
+          },
+          "sentry": {
+            "type": "http",
+            "url": "https://mcp.sentry.dev/mcp"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s44"
+    },
+    {
+      "description": "Astro static site project, design-focused. Clean settings.json. The single drift is a typo on a top-level key: 'statusline' (lowercase L) instead of 'statusLine', so the custom statusline is silently ignored. Everything else (permissions, env, autoUpdatesChannel) is valid.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-opus-4-1",
+        "cleanupPeriodDays": 30,
+        "env": {
+          "ASTRO_TELEMETRY_DISABLED": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run dev)",
+            "Bash(npm run build)",
+            "Bash(npm run astro *)",
+            "Read(./src/**)",
+            "Edit(./src/**)",
+            "WebFetch(domain:docs.astro.build)"
+          ],
+          "deny": [
+            "Read(./.env)"
+          ],
+          "defaultMode": "default"
+        },
+        "statusline": {
+          "type": "command",
+          "command": "node ~/.claude/astro-statusline.js"
+        },
+        "autoUpdatesChannel": "latest"
+      },
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "statusline",
+          "note": "Top-level key must be 'statusLine' (camelCase). Lowercased 'statusline' is silently ignored, so the custom status line never loads."
+        }
+      ],
+      "id": "s45"
+    },
+    {
+      "description": "Backend Node/Express service with strict guardrails. Clean and realistic with many permission rules. The single subtle drift: an allow rule and a deny rule overlap on the exact same specifier — 'Bash(git push *)' is in BOTH allow and deny, so the intent is ambiguous (deny wins, surprising the developer who put it in allow). All other rules are well-formed.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "cleanupPeriodDays": 60,
+        "env": {
+          "DISABLE_AUTOUPDATER": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm test)",
+            "Bash(npm run lint)",
+            "Bash(node scripts/migrate.js)",
+            "Bash(git status)",
+            "Bash(git diff *)",
+            "Bash(git push *)",
+            "Read(./src/**)",
+            "Edit(./src/**)"
+          ],
+          "deny": [
+            "Read(./secrets/**)",
+            "Read(./.env)",
+            "Bash(git push *)",
+            "Bash(curl * | sh)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "npm run lint:fix --silent",
+                  "timeout": 30
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "issues": [
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(git push *)",
+          "note": "Identical specifier appears in both permissions.allow and permissions.deny. Deny takes precedence, so the allow entry is dead and the developer's intent is contradictory."
+        }
+      ],
+      "id": "s46"
+    },
+    {
+      "description": "Data-engineering setup with DuckDB + Python. Heavy hook usage across many events. CLEAN — includes deliberately tricky valid items: a Notification hook with no matcher (valid, that event takes none), a Stop hook, a PreCompact hook, env numbers as strings, and an enabledMcpjsonServers array. No drift.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 90,
+        "env": {
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "UV_NO_SYNC": "0",
+          "MAX_THINKING_TOKENS": "31999"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(uv run *)",
+            "Bash(duckdb *)",
+            "Bash(ruff check *)",
+            "Bash(ruff format *)",
+            "Read(./data/**)",
+            "Read(./notebooks/**)"
+          ],
+          "deny": [
+            "Bash(rm -rf /)",
+            "Read(~/.aws/**)"
+          ],
+          "defaultMode": "plan"
+        },
+        "hooks": {
+          "UserPromptSubmit": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "python3 .claude/hooks/inject_schema.py",
+                  "timeout": 8
+                }
+              ]
+            }
+          ],
+          "Notification": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "terminal-notifier -message \"Claude needs input\"",
+                  "timeout": 5
+                }
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "python3 .claude/hooks/log_session.py",
+                  "timeout": 10
+                }
+              ]
+            }
+          ],
+          "PreCompact": [
+            {
+              "matcher": "manual",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "python3 .claude/hooks/snapshot.py",
+                  "timeout": 12
+                }
+              ]
+            }
+          ]
+        },
+        "enableAllProjectMcpServers": false,
+        "enabledMcpjsonServers": [
+          "duckdb"
+        ]
+      },
+      "mcp": {
+        "mcpServers": {
+          "duckdb": {
+            "command": "uvx",
+            "args": [
+              "mcp-server-motherduck",
+              "--db-path",
+              "./warehouse.db"
+            ]
+          }
+        }
+      },
+      "issues": [],
+      "id": "s47"
+    },
+    {
+      "description": "Three.js / R3F WebGL gallery project. Sophisticated config. Two subtle drifts: (1) a malformed permission rule 'Bash(npm run build' with an unclosed parenthesis (Claude Code can't parse the specifier so the rule is ignored); (2) the statusLine.type is 'shell' which is not a valid statusLine type (only 'command' is supported), so the status line breaks. Lots of valid surrounding config.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-opus-4-1",
+        "cleanupPeriodDays": 30,
+        "env": {
+          "VITE_TELEMETRY": "0"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run dev)",
+            "Bash(npm run build",
+            "Bash(npm run preview)",
+            "Read(./src/**)",
+            "Edit(./src/**)",
+            "WebFetch(domain:threejs.org)"
+          ],
+          "deny": [
+            "Read(./.env.local)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "statusLine": {
+          "type": "shell",
+          "command": "node ~/.claude/r3f-statusline.js"
+        },
+        "autoUpdatesChannel": "stable"
+      },
+      "issues": [
+        {
+          "kind": "malformed_permission_rule",
+          "token": "Bash(npm run build",
+          "note": "Unclosed parenthesis — the permission specifier is unparseable, so this allow rule is silently dropped and 'npm run build' will prompt despite the apparent allowlisting."
+        },
+        {
+          "kind": "invalid_statusline_type",
+          "token": "shell",
+          "note": "statusLine.type only supports 'command'. 'shell' is not recognized, so the custom status line fails to render."
+        }
+      ],
+      "id": "s48"
+    },
+    {
+      "description": "Enterprise security-review setup with hooks on every tool-use phase. CLEAN, but contains a clean trap on hooks: a single hook block targeting several events plus a 'SubagentStop' hook with no matcher (valid). Also a valid bypassPermissions defaultMode. No drift — designed to test false positives on legitimately-aggressive config.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 14,
+        "includeCoAuthoredBy": false,
+        "env": {
+          "ENABLE_CODE_SECURITY_REVIEW": "1",
+          "SEMGREP_RULES": "p/security-audit"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(semgrep *)",
+            "Bash(git log *)",
+            "Bash(git diff *)",
+            "Read(./**)"
+          ],
+          "deny": [
+            "Bash(git push --force *)",
+            "Bash(git push -f *)",
+            "Write(./.github/workflows/**)",
+            "Read(~/.ssh/**)"
+          ],
+          "ask": [
+            "Bash(gh pr merge *)"
+          ],
+          "defaultMode": "bypassPermissions"
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node .claude/hooks/destructive-guard.js",
+                  "timeout": 5
+                }
+              ]
+            },
+            {
+              "matcher": "Write|Edit|MultiEdit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node .claude/hooks/scope-guard.js",
+                  "timeout": 5
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node .claude/hooks/subagent-audit.js",
+                  "timeout": 8
+                }
+              ]
+            }
+          ],
+          "SessionEnd": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node .claude/hooks/persist-findings.js",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "issues": [],
+      "id": "s49"
+    },
+    {
+      "description": "Mobile/React-Native project with a generous local override. The drift is buried in hooks: under the PostToolUse event there is a hook entry with type 'command' but NO 'command' field (just a matcher and timeout), so that hook is malformed and never runs. The settings.local.json and the rest of settings.json are valid.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 30,
+        "env": {
+          "EXPO_NO_TELEMETRY": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npx expo *)",
+            "Bash(npm run ios)",
+            "Bash(npm run android)",
+            "Read(./app/**)",
+            "Edit(./app/**)"
+          ],
+          "deny": [
+            "Read(./google-services.json)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Edit|Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "timeout": 20
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": {
+        "env": {
+          "EXPO_DEBUG": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(adb *)",
+            "Bash(xcrun simctl *)"
+          ]
+        }
+      },
+      "issues": [
+        {
+          "kind": "hook_missing_command",
+          "token": "PostToolUse",
+          "note": "The PostToolUse hook object has type 'command' and a timeout but is missing the required 'command' string, so the hook is invalid and silently never executes."
+        }
+      ],
+      "id": "s50"
+    },
+    {
+      "description": "Full-stack TS project with several MCP servers in .mcp.json. The settings.json is clean. The drift lives in .mcp.json: one server 'filesystem' specifies a 'transport' field set to 'stdio' (transport is configured via the shape — command/url and an optional 'type', not a 'transport' key), AND it has no command and no url, so the server has no usable transport. The other MCP servers are valid (stdio with command, http with url+type).",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 30,
+        "permissions": {
+          "allow": [
+            "Bash(pnpm *)",
+            "Read(./packages/**)",
+            "Edit(./packages/**)",
+            "mcp__linear__list_issues"
+          ],
+          "deny": [
+            "Read(./.env)"
+          ],
+          "defaultMode": "default"
+        },
+        "enableAllProjectMcpServers": true
+      },
+      "mcp": {
+        "mcpServers": {
+          "linear": {
+            "type": "sse",
+            "url": "https://mcp.linear.app/sse"
+          },
+          "context7": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@upstash/context7-mcp"
+            ]
+          },
+          "filesystem": {
+            "transport": "stdio",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "./"
+            ]
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_no_transport",
+          "token": "filesystem",
+          "note": "Server defines a stray 'transport' key but no 'command' (stdio) and no 'url' (sse/http). With no real transport configured the server cannot start. The 'transport' key is not part of the .mcp.json schema."
+        }
+      ],
+      "id": "s51"
+    },
+    {
+      "description": "Java/Spring backend with JDTLS. Two subtle drifts: (1) a hook is registered under an unknown event 'PreToolUseHook' (the real event is 'PreToolUse'), so it's silently ignored; (2) an invalid hook timeout — a string '5s' instead of a number of seconds — on an otherwise valid PostToolUse hook. Plenty of valid permissions and a valid Maven env around them.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-opus-4-1",
+        "cleanupPeriodDays": 60,
+        "env": {
+          "MAVEN_OPTS": "-Xmx2048m",
+          "JAVA_HOME": "/usr/lib/jvm/java-21"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(./mvnw *)",
+            "Bash(mvn test)",
+            "Bash(mvn package -DskipTests)",
+            "Read(./src/main/**)",
+            "Edit(./src/main/**)"
+          ],
+          "deny": [
+            "Read(./src/main/resources/application-prod.yml)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "hooks": {
+          "PreToolUseHook": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "java -jar .claude/hooks/guard.jar",
+                  "timeout": 10
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Edit|Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "./mvnw spotless:apply -q",
+                  "timeout": "5s"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "issues": [
+        {
+          "kind": "unknown_hook_event",
+          "token": "PreToolUseHook",
+          "note": "Not a valid hook event name (valid is 'PreToolUse'). The whole block is silently ignored, so the Bash guard never runs."
+        },
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "5s",
+          "note": "Hook timeout must be a number of seconds, not a string '5s'. The invalid value makes the timeout (and potentially the hook) malformed."
+        }
+      ],
+      "id": "s52"
+    },
+    {
+      "description": "Personal automation hub with a remote MCP and a stdio MCP. Clean settings. The single drift is in .mcp.json: the 'notion' server specifies BOTH a 'command' and a 'url', which is contradictory — Claude Code can't tell whether it's a stdio (local process) or http (remote) server. The 'memory' stdio server and the rest are valid.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "model": "claude-sonnet-4-5",
+        "cleanupPeriodDays": 90,
+        "env": {
+          "DISABLE_TELEMETRY": "1"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(git *)",
+            "Read(./**)",
+            "Edit(./**)",
+            "mcp__memory__search_nodes",
+            "mcp__notion__search"
+          ],
+          "deny": [
+            "Bash(rm -rf ~)"
+          ],
+          "defaultMode": "default"
+        },
+        "autoUpdatesChannel": "latest"
+      },
+      "mcp": {
+        "mcpServers": {
+          "memory": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-memory"
+            ],
+            "env": {
+              "MEMORY_FILE_PATH": "~/.claude/memory.jsonl"
+            }
+          },
+          "notion": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@notionhq/notion-mcp-server"
+            ],
+            "url": "https://mcp.notion.com/mcp",
+            "type": "http"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_command_and_url",
+          "token": "notion",
+          "note": "Server defines both 'command' (stdio transport) and 'url' (http transport). The two are mutually exclusive; the mixed config is ambiguous and invalid."
+        }
+      ],
+      "id": "s53"
+    },
+    {
+      "description": "Polyglot monorepo project settings.json: rich permissions with parenthesized Bash prefixes, WebFetch domain rules and mcp__ tool rules, acceptEdits default mode, env vars, a command statusLine, and PostToolUse/SessionStart/UserPromptSubmit hooks. Everything valid; clean traps include the mcp__ permission rule form, WebFetch(domain:...), the empty-array additionalDirectories, and a non-overlapping allow/deny pair on the same tool.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "permissions": {
+          "allow": [
+            "Bash(npm run test:*)",
+            "Bash(npm run build)",
+            "Bash(git status)",
+            "Bash(git diff:*)",
+            "Bash(pnpm install)",
+            "Read",
+            "Edit(src/**)",
+            "WebFetch(domain:docs.python.org)",
+            "WebFetch(domain:nodejs.org)",
+            "mcp__github__search_code"
+          ],
+          "deny": [
+            "Bash(git push --force:*)",
+            "Bash(rm -rf /)",
+            "Read(./.env)",
+            "Read(./secrets/**)"
+          ],
+          "ask": [
+            "Bash(git push:*)",
+            "Write(/etc/**)"
+          ],
+          "defaultMode": "acceptEdits",
+          "additionalDirectories": []
+        },
+        "env": {
+          "NODE_ENV": "development",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "FORCE_COLOR": "1"
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "~/.claude/statusline.sh",
+          "padding": 1
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in *.ts|*.tsx) npx prettier --write \"$f\";; esac; } 2>/dev/null || true",
+                  "timeout": 30
+                }
+              ]
+            }
+          ],
+          "SessionStart": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "git fetch --quiet 2>/dev/null || true"
+                }
+              ]
+            }
+          ],
+          "UserPromptSubmit": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "date +%s >> ~/.claude/prompt-times.log"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s54"
+    },
+    {
+      "description": "Global user settings.json with newer-but-valid hook events that a stale detector might not recognize: SessionEnd, PostToolUseFailure, SubagentStop, PreCompact (with manual/auto matchers), Notification. Mixes command, prompt, and agent hook types. autoUpdatesChannel 'rc' and effortLevel 'high' are valid. No planted issues.",
+      "settings": {
+        "model": "opus",
+        "autoUpdatesChannel": "rc",
+        "effortLevel": "high",
+        "alwaysThinkingEnabled": true,
+        "hooks": {
+          "PreCompact": [
+            {
+              "matcher": "manual",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo '{\"systemMessage\":\"Manual compaction starting\"}'"
+                }
+              ]
+            },
+            {
+              "matcher": "auto",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo '{\"systemMessage\":\"Auto compaction starting\"}'"
+                }
+              ]
+            }
+          ],
+          "PostToolUseFailure": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "jq -r '.tool_input.command' >> ~/.claude/failed-commands.log"
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "true"
+                }
+              ]
+            }
+          ],
+          "SessionEnd": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo \"session ended $(date)\" >> ~/.claude/sessions.log"
+                }
+              ]
+            }
+          ],
+          "Notification": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "afplay /System/Library/Sounds/Glass.aiff 2>/dev/null || true"
+                }
+              ]
+            }
+          ],
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "prompt",
+                  "prompt": "Is this command destructive to production data? $ARGUMENTS",
+                  "timeout": 20
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s55"
+    },
+    {
+      "description": "Project settings.json paired with a valid .mcp.json that exercises all three common transports: a stdio server (command+args+env), an SSE server (type sse + url), and an HTTP server (type http + url + headers). settings.json approves them via enabledMcpjsonServers and adds matching mcp__ permission allows. All transports correct; clean trap is the mix of explicit type discriminators vs implicit-stdio.",
+      "settings": {
+        "enableAllProjectMcpServers": false,
+        "enabledMcpjsonServers": [
+          "filesystem",
+          "linear",
+          "sentry"
+        ],
+        "permissions": {
+          "allow": [
+            "mcp__filesystem__read_file",
+            "mcp__linear__list_issues",
+            "Bash(node *)",
+            "Read"
+          ],
+          "defaultMode": "default"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/Users/dev/projects"
+            ],
+            "env": {
+              "LOG_LEVEL": "info"
+            }
+          },
+          "linear": {
+            "type": "sse",
+            "url": "https://mcp.linear.app/sse"
+          },
+          "sentry": {
+            "type": "http",
+            "url": "https://mcp.sentry.dev/mcp",
+            "headers": {
+              "Authorization": "Bearer ${SENTRY_TOKEN}"
+            }
+          }
+        }
+      },
+      "issues": [],
+      "id": "s56"
+    },
+    {
+      "description": "settings.json + settings.local.json layering. Project file sets team permissions and a plan defaultMode; local file overrides to acceptEdits, adds personal allow rules and additionalDirectories, and a personal env var. dontAsk and plan are both valid modes. The local 'overlap' (same rule appears in both files' allow) is legitimate layering, not an allow/deny conflict. No planted issues.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(make *)",
+            "Bash(docker compose *)",
+            "Read",
+            "Edit(packages/**)"
+          ],
+          "deny": [
+            "Bash(docker compose down -v)"
+          ],
+          "defaultMode": "plan"
+        },
+        "includeCoAuthoredBy": true,
+        "cleanupPeriodDays": 90
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(make *)",
+            "Bash(gh pr view:*)",
+            "Bash(kubectl get *)",
+            "Edit(packages/**)"
+          ],
+          "defaultMode": "acceptEdits",
+          "additionalDirectories": [
+            "/Users/dev/shared-libs",
+            "../sibling-repo"
+          ]
+        },
+        "env": {
+          "AWS_PROFILE": "dev-sandbox"
+        }
+      },
+      "mcp": null,
+      "issues": [],
+      "id": "s57"
+    },
+    {
+      "description": "Enterprise-flavored global settings.json: availableModels allowlist, deniedMcpServers, sandbox config with allowed/denied network domains, a PermissionRequest agent hook and a PostToolUse http hook with allowedEnvVars. Uses advanced-but-valid keys (sandbox.network, allowedHttpHookUrls). The http hook + allowlist are correct. No planted issues.",
+      "settings": {
+        "availableModels": [
+          "opus",
+          "sonnet"
+        ],
+        "deniedMcpServers": [
+          {
+            "serverName": "untrusted-scraper"
+          }
+        ],
+        "allowedHttpHookUrls": [
+          "https://hooks.internal.example.com/*"
+        ],
+        "httpHookAllowedEnvVars": [
+          "AUDIT_TOKEN"
+        ],
+        "sandbox": {
+          "enabled": true,
+          "network": {
+            "allowedDomains": [
+              "*.github.com",
+              "registry.npmjs.org",
+              "pypi.org"
+            ],
+            "deniedDomains": [
+              "*.pastebin.com"
+            ]
+          }
+        },
+        "hooks": {
+          "PermissionRequest": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "agent",
+                  "prompt": "Decide if this shell command is safe for our CI policy: $ARGUMENTS",
+                  "timeout": 45
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "http",
+                  "url": "https://hooks.internal.example.com/audit",
+                  "headers": {
+                    "Authorization": "Bearer $AUDIT_TOKEN"
+                  },
+                  "allowedEnvVars": [
+                    "AUDIT_TOKEN"
+                  ],
+                  "timeout": 15
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s58"
+    },
+    {
+      "description": "Minimal-but-tricky settings.json full of clean traps for naive matchers: an empty-string hook matcher (valid, matches all), a '*' matcher (valid), a Stop hook with no matcher (valid - Stop takes none), a hook with timeout as a fractional positive number, and a Glob|Grep matcher. spinnerVerbs and language are valid extras. No planted issues.",
+      "settings": {
+        "language": "italian",
+        "spinnerVerbs": {
+          "mode": "append",
+          "verbs": [
+            "Cooking",
+            "Pondering",
+            "Whippeting"
+          ]
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "true",
+                  "timeout": 2.5
+                }
+              ]
+            },
+            {
+              "matcher": "*",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "true"
+                }
+              ]
+            },
+            {
+              "matcher": "Glob|Grep",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "true"
+                }
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo '{\"systemMessage\":\"Done.\"}'"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s59"
+    },
+    {
+      "description": "Astro/web project settings.json with attribution overrides (empty strings to hide co-authorship), a deny-heavy permission set, subagentStatusLine, viewMode, and a PostToolUse hook using the exec-form 'args' array (no shell). The empty-string attribution and args-form hook are valid clean traps. No planted issues.",
+      "settings": {
+        "attribution": {
+          "commit": "",
+          "pr": ""
+        },
+        "viewMode": "verbose",
+        "subagentStatusLine": {
+          "type": "command",
+          "command": "cat"
+        },
+        "permissions": {
+          "allow": [
+            "Bash(astro *)",
+            "Bash(npm run dev)",
+            "Bash(npx playwright test:*)",
+            "Read",
+            "Edit"
+          ],
+          "deny": [
+            "Bash(curl *)",
+            "Bash(wget *)",
+            "Read(./.env.production)"
+          ],
+          "defaultMode": "dontAsk"
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "/Users/dev/.local/bin/format-on-save",
+                  "args": [
+                    "--stdin-json"
+                  ],
+                  "timeout": 20
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s60"
+    },
+    {
+      "description": "Data-engineering project: settings.json with an mcp_tool hook (invokes a configured MCP server's tool) and a .mcp.json defining that stdio server plus a second remote http server. enabledMcpjsonServers approves both. The mcp_tool hook type and ${path} interpolation in its input are valid. No planted issues.",
+      "settings": {
+        "enabledMcpjsonServers": [
+          "duckdb",
+          "docs"
+        ],
+        "permissions": {
+          "allow": [
+            "mcp__duckdb__query",
+            "Bash(uv run *)",
+            "Bash(python *)",
+            "Read"
+          ],
+          "defaultMode": "default"
+        },
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Edit",
+              "hooks": [
+                {
+                  "type": "mcp_tool",
+                  "server": "duckdb",
+                  "tool": "validate_sql",
+                  "input": {
+                    "path": "${tool_input.file_path}"
+                  },
+                  "timeout": 25
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(duckdb *)"
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "duckdb": {
+            "command": "uvx",
+            "args": [
+              "mcp-server-duckdb",
+              "--db-path",
+              "./analytics.db"
+            ],
+            "env": {
+              "DUCKDB_THREADS": "4"
+            }
+          },
+          "docs": {
+            "type": "http",
+            "url": "https://mcp.context7.com/mcp"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s61"
+    },
+    {
+      "description": "Clean project settings.json with team permissions; the personal settings.local.json carries a misspelled top-level key 'permisions' (typo of 'permissions'), so the personal allow rules are silently ignored.",
+      "settings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "permissions": {
+          "allow": [
+            "Bash(npm run test)",
+            "Bash(npm run build)",
+            "Read",
+            "Edit(src/**)"
+          ],
+          "deny": [
+            "Bash(rm -rf *)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permisions": {
+          "allow": [
+            "Bash(git push *)",
+            "Bash(gh pr create *)"
+          ]
+        },
+        "env": {
+          "DEBUG": "true"
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "permisions",
+          "note": "Misspelled 'permissions' (missing an 's') as a top-level key in settings.local.json; the local allow rules under it are silently ignored while settings.json is clean."
+        }
+      ],
+      "id": "s62"
+    },
+    {
+      "description": "settings.json has a valid acceptEdits default; settings.local.json overrides permissions.defaultMode with an invalid value 'autoAccept' (not in the enum), so the local override is rejected.",
+      "settings": {
+        "permissions": {
+          "defaultMode": "acceptEdits",
+          "allow": [
+            "Bash(pytest *)",
+            "Bash(ruff *)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "autoAccept",
+          "additionalDirectories": [
+            "../shared-libs"
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_default_mode",
+          "token": "autoAccept",
+          "note": "permissions.defaultMode in settings.local.json is 'autoAccept', not a valid mode (acceptEdits, auto, bypassPermissions, default, dontAsk, plan). The valid 'acceptEdits' in settings.json is the clean baseline."
+        }
+      ],
+      "id": "s63"
+    },
+    {
+      "description": "Clean project hooks in settings.json; settings.local.json adds a personal hook under an unknown event 'PostEdit' (the real event is PostToolUse with a Write|Edit matcher), so the local hook never fires.",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "jq -r '.tool_input.command' >> ~/.claude/bash-log.txt",
+                  "timeout": 10
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": {
+        "hooks": {
+          "PostEdit": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "prettier --write \"$CLAUDE_FILE_PATHS\"",
+                  "timeout": 30
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "unknown_hook_event",
+          "token": "PostEdit",
+          "note": "'PostEdit' is not a real hook event; the formatter hook should live under PostToolUse. settings.json uses a valid PreToolUse hook as the clean baseline."
+        }
+      ],
+      "id": "s64"
+    },
+    {
+      "description": "CLEAN TRAP: settings.json plus a settings.local.json that uses several valid-but-uncommon features (SessionEnd hook, dontAsk defaultMode, autoUpdatesChannel 'rc', a Read tool-only allow rule). Nothing here is drift.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm *)",
+            "Read"
+          ]
+        },
+        "autoUpdatesChannel": "stable"
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "dontAsk"
+        },
+        "autoUpdatesChannel": "rc",
+        "hooks": {
+          "SessionEnd": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "echo session-ended >> ~/.claude/session.log",
+                  "timeout": 5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [],
+      "id": "s65"
+    },
+    {
+      "description": "settings.json clean; settings.local.json adds a hook entry whose command object is missing its 'command' field (only type+timeout), so the hook is malformed and ignored.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(go test ./...)",
+            "Bash(go build ./...)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "timeout": 20,
+                  "statusMessage": "Formatting Go files"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "hook_missing_command",
+          "token": "PostToolUse",
+          "note": "The PostToolUse hook object in settings.local.json has type 'command' but no 'command' field (required); it is malformed. settings.json carries no hooks, so the drift is purely local."
+        }
+      ],
+      "id": "s66"
+    },
+    {
+      "description": "settings.json declares the project .mcp.json server approvals cleanly; the drift is in .mcp.json itself — a stdio server 'postgres-local' has neither command nor url, so it has no transport. settings.local.json is a clean personal override.",
+      "settings": {
+        "enableAllProjectMcpServers": false,
+        "enabledMcpjsonServers": [
+          "postgres-local",
+          "github-api"
+        ]
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(psql *)"
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "postgres-local": {
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-postgres",
+              "postgresql://localhost/dev"
+            ],
+            "env": {
+              "PGSSLMODE": "disable"
+            }
+          },
+          "github-api": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp/"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_no_transport",
+          "token": "postgres-local",
+          "note": "The 'postgres-local' server in .mcp.json has args/env but no 'command' (and no 'url'), so it has no usable transport. The 'github-api' http server is a valid clean trap."
+        }
+      ],
+      "id": "s67"
+    },
+    {
+      "description": "settings.json allows a path; settings.local.json carries a malformed permission rule 'Bash npm test' with no parentheses around the argument (and the tool name has a space), so the rule never matches. Other local rules are valid.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm run lint)",
+            "WebFetch(domain:docs.anthropic.com)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash npm test",
+            "Edit(tests/**)",
+            "Read"
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "malformed_permission_rule",
+          "token": "Bash npm test",
+          "note": "'Bash npm test' is not valid permission-rule syntax — it needs the Tool(argument) form, e.g. 'Bash(npm test)'. The sibling rules 'Edit(tests/**)' and 'Read' are valid clean traps."
+        }
+      ],
+      "id": "s68"
+    },
+    {
+      "description": "settings.json allows git push (team policy); settings.local.json denies the same 'Bash(git push *)' it elsewhere relies on AND allows it again locally — an allow/deny overlap inside the local file that makes intent ambiguous (deny wins, surprising the developer).",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(git push *)",
+            "Bash(git status)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "allow": [
+            "Bash(git push origin feature/*)"
+          ],
+          "deny": [
+            "Bash(git push *)"
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(git push *)",
+          "note": "settings.local.json both allows 'Bash(git push origin feature/*)' and denies the broader 'Bash(git push *)' that subsumes it; deny precedence silently blocks the intended local allow."
+        }
+      ],
+      "id": "s69"
+    },
+    {
+      "description": "settings.json clean; settings.local.json adds a personal statusLine whose type is 'script' instead of the required 'command', so the custom status line is invalid and ignored.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(cargo build)",
+            "Bash(cargo test)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "statusLine": {
+          "type": "script",
+          "command": "~/.claude/statusline.sh"
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_statusline_type",
+          "token": "script",
+          "note": "statusLine.type must be the literal 'command'; 'script' is invalid, so the local status line config is rejected. settings.json carries no statusLine, so the drift is local-only."
+        }
+      ],
+      "id": "s70"
+    },
+    {
+      "description": "settings.json clean; settings.local.json carries a hook with an invalid timeout of 0 (must be > 0) under an otherwise-valid PostToolUse/Bash hook, so the hook entry is rejected.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(make *)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "make lint",
+                  "timeout": 0
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "invalid_hook_timeout",
+          "token": "0",
+          "note": "Hook timeout must be greater than 0 (exclusiveMinimum 0); a timeout of 0 in settings.local.json is invalid."
+        }
+      ],
+      "id": "s71"
+    },
+    {
+      "description": "CLEAN TRAP: a fully valid layered setup. settings.json team config, settings.local.json with valid personal overrides (env var, additionalDirectories, a valid PreToolUse prompt hook), and a clean .mcp.json with one stdio and one sse server. No drift anywhere.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(npm *)",
+            "Edit(src/**)",
+            "Read"
+          ],
+          "deny": [
+            "Read(./.env)"
+          ]
+        },
+        "enabledMcpjsonServers": [
+          "filesystem",
+          "sentry"
+        ]
+      },
+      "settingsLocal": {
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "permissions": {
+          "additionalDirectories": [
+            "/home/dev/shared"
+          ],
+          "allow": [
+            "Bash(docker compose up *)"
+          ]
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "prompt",
+                  "prompt": "Is this command safe to run on a dev box? $ARGUMENTS"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/home/dev/project"
+            ]
+          },
+          "sentry": {
+            "type": "sse",
+            "url": "https://mcp.sentry.dev/sse"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s72"
+    },
+    {
+      "description": "settings.json clean; .mcp.json carries an 'analytics' server that specifies BOTH a command and a url (conflicting stdio + remote transport). settings.local.json approves it, but the server definition itself is ambiguous.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Read",
+            "Bash(npm run dev)"
+          ]
+        }
+      },
+      "settingsLocal": {
+        "enabledMcpjsonServers": [
+          "analytics"
+        ]
+      },
+      "mcp": {
+        "mcpServers": {
+          "analytics": {
+            "command": "node",
+            "args": [
+              "./mcp/analytics-server.js"
+            ],
+            "url": "https://analytics.internal.example.com/mcp"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_command_and_url",
+          "token": "analytics",
+          "note": "The 'analytics' server defines both 'command' (stdio) and 'url' (remote) transports at once, which is contradictory; exactly one transport should be present."
+        }
+      ],
+      "id": "s73"
+    },
+    {
+      "description": "Monorepo project settings packed with permission rules that legitimately use glob/regex metacharacters ( ) [ ] { } . * + inside the (pattern) part, plus a server-wide MCP wildcard rule. Every rule is a valid Claude Code rule even though a naive regex checker might choke on the braces and the bare-* MCP form. Fully clean.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "permissions": {
+          "allow": [
+            "Bash(npm run test:*)",
+            "Bash(git commit -m \"*\")",
+            "Bash(rm -rf {dist,build,.next}/**)",
+            "Edit(src/**/*.[jt]s?(x))",
+            "Read(packages/**/*.{ts,tsx,json})",
+            "WebFetch(domain:*.example.com)",
+            "mcp__github__*",
+            "mcp__memory__search_nodes"
+          ],
+          "deny": [
+            "Bash(curl * | sh)",
+            "Read(./.env*)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "env": {
+          "NODE_OPTIONS": "--max-old-space-size=4096"
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s74"
+    },
+    {
+      "description": "Hooks whose matchers deliberately exercise regex metacharacters: alternation with (|), a character class [ ], a quantifier .* , and an anchored group. All are valid JS regexes so none should be flagged. Events and hook types are all real. Clean.",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Edit|Write|MultiEdit",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/fmt.mjs",
+                  "timeout": 10
+                }
+              ]
+            },
+            {
+              "matcher": "Notebook(Edit|Read)",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "python3 ./.claude/hooks/nb-guard.py"
+                }
+              ]
+            },
+            {
+              "matcher": "mcp__.*__(write|delete).*",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/mcp-audit.mjs",
+                  "timeout": 5
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Bash",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash ./.claude/hooks/post-bash.sh",
+                  "timeout": 30
+                }
+              ]
+            }
+          ],
+          "Notification": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/notify.mjs"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s75"
+    },
+    {
+      "description": "Near-miss real settings keys that all genuinely exist and are spelled correctly: cleanupPeriodDays, includeCoAuthoredBy, autoUpdatesChannel, awaySummaryEnabled, alwaysThinkingEnabled, skillListingBudgetFraction, plus a statusLine with a valid command and an additionalDirectories array. A naive checker tempted to 'autocorrect' one of these would create a false positive. Clean.",
+      "settings": {
+        "$schema": "https://json.schemastore.org/claude-code-settings.json",
+        "cleanupPeriodDays": 45,
+        "includeCoAuthoredBy": false,
+        "autoUpdatesChannel": "stable",
+        "awaySummaryEnabled": true,
+        "alwaysThinkingEnabled": false,
+        "skillListingBudgetFraction": 0.05,
+        "permissions": {
+          "additionalDirectories": [
+            "../shared-types",
+            "../../company-design-system",
+            "C:\\work\\vendor\\sdk"
+          ],
+          "defaultMode": "default"
+        },
+        "statusLine": {
+          "type": "command",
+          "command": "node ./.claude/statusline.js",
+          "padding": 0
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s76"
+    },
+    {
+      "description": "MCP servers covering every valid transport with the correct field for each: stdio (command+args+env), http (url+headers), sse (url), streamable-http (url), and ws (url). Odd-but-legal env var names included. A checker that only knows 'stdio' would wrongly flag the http-family servers. Clean.",
+      "settings": {
+        "enableAllProjectMcpServers": false
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "./data"
+            ],
+            "env": {
+              "FS_ROOT": "./data",
+              "_DEBUG_2": "1",
+              "X-Internal-Flag": "on"
+            }
+          },
+          "linear-http": {
+            "type": "http",
+            "url": "https://mcp.linear.app/mcp",
+            "headers": {
+              "Authorization": "Bearer ${LINEAR_TOKEN}"
+            }
+          },
+          "legacy-sse": {
+            "type": "sse",
+            "url": "https://sse.example.com/mcp/sse"
+          },
+          "stream": {
+            "type": "streamable-http",
+            "url": "https://api.example.com/mcp"
+          },
+          "ws-bridge": {
+            "type": "ws",
+            "url": "wss://bridge.local:8900/mcp"
+          }
+        }
+      },
+      "issues": [],
+      "id": "s77"
+    },
+    {
+      "description": "settings.json plus a settings.local.json that overrides only a few keys. Both files are individually valid; the local file legitimately uses defaultMode 'bypassPermissions' (unusual but real) and odd-cased env vars. Allow rules use MCP double-underscore tool names with dots. No overlap between allow and deny (deny has a Bash subcommand the allow does not). Clean.",
+      "settings": {
+        "permissions": {
+          "allow": [
+            "Bash(go test ./...)",
+            "Bash(docker compose up -d)",
+            "mcp__sentry__list_issues",
+            "Read(//wsl.localhost/Ubuntu/home/dev/**)"
+          ],
+          "deny": [
+            "Bash(git push --force*)"
+          ],
+          "defaultMode": "acceptEdits"
+        },
+        "env": {
+          "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+          "OTEL_metrics_EXPORTER": "none"
+        }
+      },
+      "settingsLocal": {
+        "permissions": {
+          "defaultMode": "bypassPermissions",
+          "allow": [
+            "Bash(terraform plan)"
+          ]
+        },
+        "env": {
+          "TF_VAR_region": "eu-central-1",
+          "aws_PROFILE": "dev"
+        }
+      },
+      "mcp": null,
+      "issues": [],
+      "id": "s78"
+    },
+    {
+      "description": "A genuinely broken scenario hiding among clean-looking parts. One top-level key is misspelled (permisions instead of permissions) so the whole permissions block is silently ignored; an autoUpdatesChannel typo ('nightly') silently reverts to default; and an allow/deny exact overlap makes one allow rule dead. The statusLine and the well-formed regex matcher are clean traps that must NOT be flagged.",
+      "settings": {
+        "permisions": {
+          "allow": [
+            "Bash(npm ci)"
+          ],
+          "deny": [
+            "Bash(rm -rf /)"
+          ]
+        },
+        "permissions": {
+          "allow": [
+            "Bash(npm run build)",
+            "Bash(rm -rf node_modules)"
+          ],
+          "deny": [
+            "Bash(rm -rf node_modules)"
+          ],
+          "defaultMode": "default"
+        },
+        "autoUpdatesChannel": "nightly",
+        "statusLine": {
+          "type": "command",
+          "command": "pwsh -NoProfile -File ./.claude/status.ps1"
+        },
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "Edit|Write",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/guard.mjs",
+                  "timeout": 5
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        {
+          "kind": "typo_top_level_key",
+          "token": "permisions",
+          "note": "misspelled 'permissions' (single s); the block is silently ignored, so its allow/deny never apply. The correctly spelled 'permissions' key also present right below makes the typo easy to miss."
+        },
+        {
+          "kind": "invalid_autoupdates_channel",
+          "token": "nightly",
+          "note": "autoUpdatesChannel only accepts 'stable' or 'latest'; 'nightly' silently falls back to the default channel."
+        },
+        {
+          "kind": "allow_deny_overlap",
+          "token": "Bash(rm -rf node_modules)",
+          "note": "exact same rule string in both allow and deny under the real 'permissions' key; deny wins so the allow is dead weight."
+        }
+      ],
+      "id": "s79"
+    },
+    {
+      "description": "A .mcp.json with two genuinely misconfigured servers plus three valid clean-trap servers. The broken ones: a server with both command and url (mutually exclusive), and an http-typed server with no url. The clean traps: a stdio server with no explicit type (inferred from command), a server using the valid 'streamable-http' transport, and a server whose name contains dashes and digits.",
+      "settings": {},
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "git-tools-v2": {
+            "command": "uvx",
+            "args": [
+              "mcp-server-git",
+              "--repository",
+              "."
+            ]
+          },
+          "good-http": {
+            "type": "streamable-http",
+            "url": "https://mcp.example.dev/v1"
+          },
+          "notion-mixed": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "@notionhq/notion-mcp-server"
+            ],
+            "url": "https://mcp.notion.com/mcp"
+          },
+          "grafana-remote": {
+            "type": "http"
+          }
+        }
+      },
+      "issues": [
+        {
+          "kind": "mcp_command_and_url",
+          "token": "notion-mixed",
+          "note": "defines both a stdio 'command' and an http 'url'; they are mutually exclusive and one is silently ignored."
+        },
+        {
+          "kind": "mcp_missing_url",
+          "token": "grafana-remote",
+          "note": "type is 'http' but there is no 'url' field, so the server cannot connect."
+        }
+      ],
+      "id": "s80"
+    },
+    {
+      "description": "Hook config that looks elaborate but is fully valid: PreCompact and SessionEnd (no matcher needed), a Stop hook, a SubagentStop hook, an http-type hook with a url, and a prompt-type hook. Timeouts are positive integers. A naive checker might flag the matcher-less events or the non-command hook types, but all are legitimate. Clean.",
+      "settings": {
+        "hooks": {
+          "PreCompact": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/precompact.mjs",
+                  "timeout": 15
+                }
+              ]
+            }
+          ],
+          "SessionStart": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "bash ./.claude/hooks/session-start.sh",
+                  "timeout": 8
+                }
+              ]
+            }
+          ],
+          "Stop": [
+            {
+              "hooks": [
+                {
+                  "type": "prompt",
+                  "prompt": "Summarize what changed this turn in one line."
+                }
+              ]
+            }
+          ],
+          "SubagentStop": [
+            {
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "node ./.claude/hooks/subagent-done.mjs"
+                }
+              ]
+            }
+          ],
+          "PostToolUse": [
+            {
+              "matcher": "Write|Edit",
+              "hooks": [
+                {
+                  "type": "http",
+                  "url": "http://127.0.0.1:5151/notify",
+                  "timeout": 3
+                }
+              ]
+            }
+          ]
+        },
+        "permissions": {
+          "ask": [
+            "Bash(git push*)",
+            "Bash(npm publish*)"
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s81"
+    }
+  ]
+}

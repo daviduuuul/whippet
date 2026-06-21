@@ -174,9 +174,9 @@ function withReal(cfg, rel) { const p = path.join(cfg, rel); fs.mkdirSync(path.d
 }
 
 /* ---------------- H. hook validity (event / matcher / command) ---------------- */
-{ // H1 unknown event name -> error
-  const r = run({ settings: { hooks: { BadEvent: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } } });
-  ck('H1 unknown hook event -> error', hasFinding(r, 'hooks', 'unknown hook event: BadEvent'));
+{ // H1 a near-miss typo of a real event -> error (forward-compatible: only typos flagged)
+  const r = run({ settings: { hooks: { PreToolUze: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('H1 typo hook event -> error', hasFinding(r, 'hooks', 'unknown hook event: PreToolUze'));
 }
 { // H2 invalid matcher regex -> error
   const r = run({ settings: { hooks: { PreToolUse: [{ matcher: '[invalid(regex', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
@@ -191,6 +191,22 @@ function withReal(cfg, rel) { const p = path.join(cfg, rel); fs.mkdirSync(path.d
   const hk = withReal(cfg, path.join('hooks', 'h.js'));
   writeJSON(path.join(cfg, 'settings.json'), { hooks: { PostToolUse: [{ matcher: 'Write|Edit', hooks: [{ type: 'command', command: `node "${hk}"` }] }] } });
   ck('H4 valid hook -> clean', count(audit(cfg), 'hooks') === 0);
+}
+{ // H5 an unknown-but-far event name -> warning (probably wrong, but soft: could be a newer event)
+  const r = run({ settings: { hooks: { CompletelyMadeUpThing: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('H5 far-unknown event -> warning not error', r.findings.some(f => f.category === 'hooks' && f.title === 'unknown hook event: CompletelyMadeUpThing' && f.severity === 'warning'));
+}
+{ // H6 newer documented events are recognized (no false positive)
+  const r = run({ settings: { hooks: { PostToolUseFailure: [{ hooks: [{ type: 'command', command: 'echo x' }] }], PermissionRequest: [{ hooks: [{ type: 'command', command: 'echo y' }] }] } } });
+  ck('H6 PostToolUseFailure/PermissionRequest -> not flagged', count(r, 'hooks') === 0);
+}
+{ // H7 "*" match-all matcher is valid, not a regex to compile
+  const r = run({ settings: { hooks: { PreToolUse: [{ matcher: '*', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('H7 star matcher -> not flagged', count(r, 'hooks') === 0);
+}
+{ // H8 mcp_tool is a valid hook type
+  const r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Edit', hooks: [{ type: 'mcp_tool', server: 'x', tool: 't' }] }] } } });
+  ck('H8 mcp_tool type -> not flagged', count(r, 'hooks') === 0);
 }
 
 /* ---------------- I. MCP servers ---------------- */
@@ -500,8 +516,8 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   ck('O4 valid settings.local.json -> clean', r.findings.length === 0);
 }
 { // O5 invalid hook event in settings.local.json -> error (structural check runs on local)
-  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { hooks: { BadEvent: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } }) });
-  ck('O5 unknown event in settings.local.json -> error', hasFinding(r, 'hooks', 'unknown hook event: BadEvent'));
+  const r = run({ settings: {}, extra: (cfg) => writeJSON(path.join(cfg, 'settings.local.json'), { hooks: { SessionStrt: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } }) });
+  ck('O5 unknown event in settings.local.json -> error', hasFinding(r, 'hooks', 'unknown hook event: SessionStrt'));
 }
 
 /* ---------------- P. additive checks (timeout / allow+deny / mcp shape) ---------------- */
@@ -516,6 +532,14 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   const hk = withReal(cfg, path.join('hooks', 'h.js'));
   writeJSON(path.join(cfg, 'settings.json'), { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: `node "${hk}"`, timeout: 5 }] }] } });
   ck('P2 hook timeout 5 -> no finding', count(audit(cfg), 'hooks') === 0);
+}
+{ // P2b fractional timeout is valid (seconds, not restricted to integers)
+  const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo x', timeout: 2.5 }] }] } } });
+  ck('P2b hook timeout 2.5 -> no finding', count(r, 'hooks') === 0);
+}
+{ // P2c non-number timeout is still flagged
+  const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo x', timeout: 'soon' }] }] } } });
+  ck('P2c string timeout -> warning', hasFinding(r, 'hooks', 'invalid hook timeout: PreToolUse'));
 }
 { // same rule in allow and deny -> warning (deny wins)
   const r = run({ settings: { permissions: { allow: ['Bash(rm *)'], deny: ['Bash(rm *)'] } } });
@@ -544,9 +568,15 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   const r = run({ settings: { myCustomThing: 1, anotherWeirdKey: true } });
   ck('Q4 far-unknown key -> no settings finding', count(r, 'settings') === 0);
 }
-{ // Q5 typo alongside the correct key -> not flagged (the suggestion would be noise)
+{ // Q5 typo alongside the correct key IS flagged (dead near-duplicate, silently ignored)
   const r = run({ settings: { permissions: { allow: [] }, permission: { allow: [] } } });
-  ck('Q5 typo + correct key present -> not flagged', !hasFinding(r, 'settings', 'unknown settings key: permission'));
+  ck('Q5 typo + correct key present -> flagged as stray', hasFinding(r, 'settings', 'unknown settings key: permission')
+    && r.findings.some(f => f.category === 'settings' && /stray near-duplicate/.test(f.detail)));
+}
+{ // Q7 transposition is a single edit (Damerau): modle -> model
+  const r = run({ settings: { modle: 'sonnet' } });
+  ck('Q7 transposed key modle -> flagged as typo of model', hasFinding(r, 'settings', 'unknown settings key: modle')
+    && r.findings.some(f => f.category === 'settings' && /model/.test(f.detail)));
 }
 { // Q6 typo in settings.local.json is caught and labelled to that file
   const root = tmp(); const cfg = path.join(root, '.claude');
