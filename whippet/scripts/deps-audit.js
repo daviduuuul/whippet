@@ -74,7 +74,7 @@ const DUP_GROUPS = {
 
 // include single-file-component formats — a dep imported only inside a .vue/.svelte/.astro
 // component would otherwise read as "unused" (a false positive on Vue/Svelte/Astro projects).
-const SRC_EXT = new Set(['.js', '.mjs', '.cjs', '.mts', '.cts', '.ts', '.tsx', '.jsx', '.vue', '.svelte', '.astro']);
+const SRC_EXT = new Set(['.js', '.mjs', '.cjs', '.mts', '.cts', '.ts', '.tsx', '.jsx', '.vue', '.svelte', '.astro', '.mdx']);
 const SKIP_DIR = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.staging', 'out', '.cache']);
 const CONFIG_RE = /^(\.eslintrc|eslint\.config|\.prettierrc|prettier\.config|\.babelrc|babel\.config|jest\.config|vitest\.config|vite\.config|webpack\.config|rollup\.config|tailwind\.config|postcss\.config|\.mocharc|commitlint\.config|\.stylelintrc|tsconfig)/i;
 
