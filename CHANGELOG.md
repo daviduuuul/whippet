@@ -25,6 +25,11 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
     instead of silently degrading.
   - marker parser: a trailing CR no longer defeats it, and `whippet:` now requires a comment lead,
     so ordinary prose that merely mentions `whippet:` is no longer a false marker.
+- **Less false-alarm noise (deps-audit).** The duplicate-purpose check now looks only at runtime
+  `dependencies`: keeping competing libraries as devDependencies (benchmarks, migration, plugin
+  testing) is normal and no longer flagged, while two libraries *shipped* for the same job still
+  are. And `env` is no longer a settings-key typo target (at 3 chars its edit-distance-1
+  neighbourhood is too wide to suggest safely); it stays recognized as a valid key.
 
 ## [2.1.0] - 2026-06-21
 

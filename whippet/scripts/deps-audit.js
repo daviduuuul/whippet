@@ -208,9 +208,11 @@ function audit(root) {
     }
   }
 
-  // 3. duplicate-purpose (over declared deps + devDeps)
+  // 3. duplicate-purpose — over runtime dependencies only. Shipping two libraries for the same
+  //    job is real "pick one" debt; keeping competitors as devDependencies (benchmarks, migration,
+  //    plugin testing) is normal and must not be flagged.
   for (const [purpose, members] of Object.entries(DUP_GROUPS)) {
-    const present = members.filter(m => declared[m]);
+    const present = members.filter(m => deps[m]);
     if (present.length >= 2) {
       add('info', 'duplicate', `multiple ${purpose} libraries: ${present.join(', ')}`,
         `${present.length} libraries cover the same job`,
