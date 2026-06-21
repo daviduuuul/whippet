@@ -56,7 +56,9 @@ commented-out blocks, no half-applied edits.
 - **Flagged (left for you):** `file:line — why it's risky`.
 - One-line verdict: `simplified` / `already lean` / `flags need a human`.
 
-No essay, no restating the request.
+No essay, no restating the request. With `--json` in `$ARGUMENTS`, output only
+`{ "applied": [{file, line, change}], "flagged": [{file, line, risk}], "verdict": "…" }`
+and nothing else.
 
 ## Levels
 

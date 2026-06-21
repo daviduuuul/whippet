@@ -255,6 +255,12 @@ function audit(configDir) {
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
           }
+          // timeout must be a positive integer (seconds); absent is fine (a default applies)
+          if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !Number.isInteger(h.timeout) || h.timeout <= 0)) {
+            add('warning', 'hooks', `invalid hook timeout: ${event}`,
+              `timeout must be a positive integer in seconds; got ${JSON.stringify(h.timeout)}`,
+              'set a positive integer timeout, or remove it to use the default', `${label}:hooks.${event}`);
+          }
         }
       }
     }
@@ -279,6 +285,15 @@ function audit(configDir) {
             `${JSON.stringify(rule)} is not a valid rule (expected ToolName or ToolName(pattern))`,
             'fix the rule shape', `${label}:permissions.${key}`);
         }
+      }
+    }
+    // a rule in both allow and deny — deny wins, so the allow is dead weight
+    const denySet = new Set((Array.isArray(perms.deny) ? perms.deny : []).filter((r) => typeof r === 'string'));
+    for (const rule of (Array.isArray(perms.allow) ? perms.allow : [])) {
+      if (typeof rule === 'string' && denySet.has(rule)) {
+        add('warning', 'permissions', `rule in both allow and deny: ${rule}`,
+          'deny wins, so this allow rule never takes effect',
+          'remove it from allow or from deny', `${label}:permissions`);
       }
     }
 
@@ -308,6 +323,11 @@ function audit(configDir) {
       add('warning', 'mcp', `invalid MCP transport: ${name}`,
         `type "${def.type}" is not a known transport`,
         `use one of: ${[...MCP_TRANSPORTS].join(', ')}`, `mcpServers.${name}.type`);
+    }
+    if (def.command && def.url) {
+      add('warning', 'mcp', `MCP server has both command and url: ${name}`,
+        'a stdio command and an http url are mutually exclusive — one is ignored',
+        'keep only the field for the intended transport', `mcpServers.${name}`);
     }
     const type = def.type || (def.command ? 'stdio' : (def.url ? 'http' : undefined));
     if (type === 'stdio' && !def.command) {
