@@ -66,7 +66,9 @@ const CONFIG_RE = /^(\.eslintrc|eslint\.config|\.prettierrc|prettier\.config|\.b
 // or null if unstated. Conservative: take the minimum major mentioned.
 function parseNodeMin(spec) {
   if (typeof spec !== 'string') return null;
-  const majors = (spec.match(/\d+/g) || []).map(Number);
+  // major of each version token (parseInt stops at the first dot) — a minor/patch
+  // must not drag the floor down (">=20.10.0" is Node 20, not min(20,10,0)=0).
+  const majors = (spec.match(/\d+(?:\.\d+)*/g) || []).map(v => parseInt(v, 10));
   return majors.length ? Math.min(...majors) : null;
 }
 
