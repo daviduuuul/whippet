@@ -97,6 +97,17 @@ function frontmatterKeys(filePath) {
   return keys;
 }
 
+// Compare dotted version strings numerically (1.10 > 1.9, which a string compare
+// gets backwards). Missing / non-numeric parts count as 0. Returns <0 / 0 / >0.
+function cmpSemver(a, b) {
+  const pa = String(a).split('.'), pb = String(b).split('.');
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (parseInt(pa[i], 10) || 0) - (parseInt(pb[i], 10) || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
 // A permission rule is `ToolName` optionally followed by `(pattern)`. Tool names
 // can carry dots and double-underscores (e.g. mcp__server__tool, vendor.tool). MCP
 // rules also take a documented trailing wildcard (mcp__server__*, mcp__server__get_*);
@@ -208,7 +219,7 @@ function audit(configDir) {
       const key = `${pl.name}@${name}`;
       const inst = installedPlugins[key];
       const iv = Array.isArray(inst) && inst[0] && inst[0].version;
-      if (iv && iv !== pl.version) {
+      if (iv && cmpSemver(iv, pl.version) < 0) {
         add('warning', 'marketplace', `plugin out of date: ${key}`,
           `installed ${iv}, but the local source is ${pl.version}`,
           'run /plugin update to sync the cache', key);
