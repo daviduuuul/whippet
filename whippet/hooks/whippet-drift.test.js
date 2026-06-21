@@ -62,6 +62,11 @@ ck('garbage state -> no crash', evaluateDrift(null, { threshold: 3 }).notify ===
   ck('statePath survives no input', typeof statePath({}) === 'string');
   ck('statePath handles a Windows transcript path', statePath({ transcript_path: 'C:\\projects\\foo\\abc.jsonl', session_id: 'abc' }).includes('abc'));
 }
+{ // a session_id with path separators must not escape the dir (traversal / dedup break)
+  const clean = statePath({ transcript_path: '/p/proj/x.jsonl', session_id: 'clean' });
+  const evil = statePath({ transcript_path: '/p/proj/x.jsonl', session_id: '../../evil' });
+  ck('statePath sanitizes separators in session_id', path.dirname(evil) === path.dirname(clean) && path.basename(evil).startsWith('.whippet-drift-'));
+}
 
 // editedFiles parses Edit/Write/MultiEdit payloads
 ck('editedFiles Edit/Write top-level', editedFiles({ file_path: 'a.ts' }).length === 1);

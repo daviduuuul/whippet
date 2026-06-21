@@ -16,3 +16,6 @@ benchmarks/drift/candidates/
 
 # Sweep candidate snapshots (bench-sweep.js copies fixtures here before scoring).
 .staging/
+
+# Whippet runtime per-session state files (hooks write these; never an artifact to commit).
+.whippet-*
