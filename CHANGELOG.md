@@ -4,38 +4,45 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-06-21
+
+Precision & correctness patch. False positives found by real-world validation (24 public repos,
+45 real Claude configs) and an adversarial pre-release review, all fixed test-first. Measured
+accuracy is unchanged: deps-audit 96.6% precision / 85.8% recall, config-audit 96.5% recall with
+zero real false positives.
+
 ### Fixed
-- **deps-audit: two false positives found by a 24-repo real-world sweep.** (1) Dropped the
-  `bundler` duplicate group — `vite` is built on `rollup`/`esbuild`, so they compose rather than
-  compete, and flagging them together was wrong (hit vue, rollup, mocha, vite). (2) When
-  `engines.node` is unknown, only suggest natives stable since Node <= 18; a recent swap
-  (`parseArgs`/`withResolvers`/global `fetch`) is now suppressed instead of guessed at (was
-  mis-flagging `minimist` on axios). Validated against the real package.json of 24 public repos.
-- **Pre-release review hardening of the deterministic engines.** An adversarial review surfaced and
-  fixed latent edge-case bugs, all toward the zero-false-positive / correctness contract:
-  - deps-audit `parseNodeMin` ignores SemVer prerelease/build tails (`>=22.0.0-rc.1` is Node 22,
-    not 1 — which had silenced *every* native advisory) and treats an upper-bound-only floor as 0
-    (engines `<18` no longer flags natives that need a newer Node).
-  - config-audit: an MCP server with an unknown `type` and no command/url now gets the
-    `no transport` error, not just a warning; a permission rule whose `(spec)` contains a newline
-    is no longer mis-flagged as malformed.
-  - `whippet check`: the markers check reads the **staged blob** (not the worktree) under
-    `--staged`; `--range` new-dependency detection uses the same worktree-vs-ref baseline as the
-    rest of the gate; and `--range`/`--config-dir` with a missing or flag-like value now errors
-    instead of silently degrading.
-  - marker parser: a trailing CR no longer defeats it, and `whippet:` now requires a comment lead,
-    so ordinary prose that merely mentions `whippet:` is no longer a false marker.
-- **Less false-alarm noise (deps-audit).** The duplicate-purpose check now looks only at runtime
-  `dependencies`: keeping competing libraries as devDependencies (benchmarks, migration, plugin
-  testing) is normal and no longer flagged, while two libraries *shipped* for the same job still
-  are. And `env` is no longer a settings-key typo target (at 3 chars its edit-distance-1
-  neighbourhood is too wide to suggest safely); it stays recognized as a valid key.
-- **deps-audit no longer false-flags deps used only in single-file components.** The source scan
-  now reads `.vue` / `.svelte` / `.astro` / `.mdx` (plus `.mts` / `.cts`), so a runtime dependency imported
-  only inside a component is no longer reported as "possibly unused" — a false positive on any
-  Vue / Svelte / Astro project.
-- **config-audit derives the url-requiring MCP transport list** from the transport set instead of
-  duplicating it, so the two can no longer drift apart.
+
+**deps-audit — fewer false positives**
+- `parseNodeMin` ignores SemVer prerelease/build tails (`>=22.0.0-rc.1` is Node 22, not 1 — which
+  had silenced *every* native advisory) and reads an upper-bound-only floor as 0 (`<18` no longer
+  flags natives that need a newer Node).
+- A native swap gated to a recent Node (`parseArgs` / `withResolvers` / global `fetch`) is
+  suppressed when `engines.node` is unknown rather than guessed at (was mis-flagging `minimist`).
+- The `bundler` duplicate group is dropped — `vite` is built on `rollup` / `esbuild`, so they
+  compose rather than compete (was flagging vue, rollup, mocha, vite).
+- The duplicate-purpose check looks only at runtime `dependencies`; competitors kept as
+  devDependencies (benchmarks, migration, plugin testing) are no longer flagged.
+- The source scan reads `.vue` / `.svelte` / `.astro` / `.mdx` (plus `.mts` / `.cts`), so a
+  dependency imported only inside a single-file component is no longer reported "possibly unused".
+
+**config-audit**
+- An MCP server with an unknown `type` and no command/url now gets the `no transport` error, not
+  just a warning; the url-requiring transport list is derived from the transport set so it can't
+  drift from it.
+- A permission rule whose `(spec)` contains a newline is no longer mis-flagged as malformed.
+- `env` is no longer a settings-key typo target (too short to suggest safely); it stays a
+  recognized valid key.
+
+**whippet check**
+- The markers check reads the **staged blob**, not the worktree, under `--staged`; `--range`
+  new-dependency detection uses the same worktree-vs-ref baseline as the rest of the gate; and
+  `--range` / `--config-dir` with a missing or flag-like value now errors instead of silently
+  degrading.
+
+**marker parser**
+- A trailing CR no longer defeats it, and `whippet:` now requires a comment lead — ordinary prose
+  that merely mentions `whippet:` is no longer a false marker.
 
 ## [2.1.0] - 2026-06-21
 
