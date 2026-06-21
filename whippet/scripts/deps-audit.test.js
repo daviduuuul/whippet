@@ -150,6 +150,15 @@ const count = (r, cat) => r.findings.filter(f => f.category === cat).length;
   const r = run({ pkg: { dependencies: { deepdep: '^1' } }, files: { 'index.js': 'const x = 1', [deep]: "require('deepdep')" } });
   ck('U8 import past depth cap -> no false unused', count(r, 'unused') === 0);
 }
+{ // U9 a dep imported only inside a Vue/Svelte/Astro component is NOT unused (SFCs are sources)
+  const r = run({ pkg: { dependencies: { nanostores: '^0.9', pinia: '^2', "svelte-routing": '^2' } }, files: {
+    "src/main.js": "console.log(1)",
+    "src/Counter.astro": '--- import { atom } from "nanostores" --- <div/>',
+    "src/Store.vue": '<script>import { createPinia } from "pinia"</script>',
+    "src/Nav.svelte": '<script>import { link } from "svelte-routing"</script>',
+  } });
+  ck('U9 deps used only in .astro/.vue/.svelte -> no false unused', count(r, 'unused') === 0);
+}
 
 /* ---------------- duplicate-purpose ---------------- */
 { // D1 two date libraries -> info
