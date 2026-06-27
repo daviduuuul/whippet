@@ -416,6 +416,24 @@ ck('G5 glob arg is not a script -> null', extractScriptPath('prettier --write sr
   ck('G6 hook glob arg -> no false missing-script', count(r, 'hooks') === 0);
 }
 
+/* ---------------- T. leading ~ is shell home-expansion, unprovable (cycle-1 real-config FP) ---------------- */
+ck('T1 leading ~/ -> null', extractScriptPath('~/.claude/monitors/timer.sh --flag') === null);
+ck('T2 node ~/x.js -> null', extractScriptPath('node ~/.claude/hud/sl.js') === null);
+ck('T3 ~\\ backslash -> null', extractScriptPath('~\\.claude\\x.ps1') === null);
+ck('T4 mid-string ~ stays a real path', extractScriptPath('node report~1.js') === 'report~1.js');
+{ // T5 a hook using a ~/ script is valid (the shell expands ~) -> no false missing-script
+  const r = run({ settings: { hooks: { SessionStart: [{ hooks: [{ type: 'command', command: '~/.claude/hooks/handoff.sh' }] }] } } });
+  ck('T5 hook ~/ command -> no false missing-script', count(r, 'hooks') === 0);
+}
+{ // T6 statusLine with a ~/ script -> no false positive
+  const r = run({ settings: { statusLine: { type: 'command', command: 'node ~/.claude/hud/statusline.js' } } });
+  ck('T6 statusLine ~/ command -> no false positive', count(r, 'statusline') === 0);
+}
+{ // T7 MCP stdio with a ~/ arg -> no false missing-script (a no-shell launcher can't be proven broken)
+  const r = run(mcpFix({ mcpServers: { timer: { type: 'stdio', command: 'node', args: ['~/.claude/mcp/timer.js'] } } }));
+  ck('T7 MCP ~/ arg -> no false missing-script', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+
 /* ---------------- K. duplicate local component vs plugin (#13) ---------------- */
 // fabricate an installed plugin under cfg; returns its installPath
 function fakePlugin(cfg, key, { manifest, components } = {}) {

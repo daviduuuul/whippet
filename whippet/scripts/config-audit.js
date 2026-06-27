@@ -49,6 +49,11 @@ function extractScriptPath(cmd) {
   // caller benefits. Whether a bare, path-less filename counts is left to the caller: an MCP entry
   // arg is structured (a bare name is the script), but a hook/statusLine shell string is prose-risk.
   if (sp.includes('://')) return null;
+  // a leading ~ is shell home-expansion (~/, ~\, ~user/) the auditor can't resolve statically:
+  // os.homedir() need not equal the runtime $HOME (HOME override, sudo, CI), and a no-shell MCP
+  // launcher passes ~ literally. Decline it like ${VAR}/glob/URL rather than cry wolf on a valid
+  // ~/.claude/x.sh. Anchored, so a mid-string ~ (Windows PROGRA~1, report~1.sh) stays a real path.
+  if (/^~/.test(sp)) return null;
   return sp;
 }
 
