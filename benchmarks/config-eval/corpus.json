@@ -1,5 +1,5 @@
 {
-  "count": 87,
+  "count": 89,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3905,6 +3905,38 @@
       "mcp": null,
       "issues": [],
       "id": "s86"
+    },
+    {
+      "description": "Multiple simultaneous drifts in one settings.json: a misspelled structural key 'statusline' (should be statusLine, so the statusLine feature silently does nothing), an invalid autoUpdatesChannel 'rc' (only stable/latest are valid, so it silently falls back), and a malformed permission rule 'Bash(rm' with an unbalanced parenthesis (silently ignored, so the guard never applies). Tests that the engine surfaces all three at once.",
+      "settings": {
+        "statusline": { "type": "command", "command": "echo hi" },
+        "autoUpdatesChannel": "rc",
+        "permissions": { "allow": ["Bash(rm", "WebFetch"] }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "typo_top_level_key", "token": "statusline", "note": "near-miss of statusLine" },
+        { "kind": "invalid_autoupdates_channel", "token": "rc", "note": "only stable/latest are valid" },
+        { "kind": "malformed_permission_rule", "token": "Bash(rm", "note": "unbalanced parenthesis" }
+      ],
+      "id": "s87"
+    },
+    {
+      "description": "Clean-but-tricky: a settings.json full of valid-yet-easily-misflagged items — permission allows with glob/scoped patterns (Bash(npm run test:*), mcp__github__get_*, Read(~/notes/**)), a scoped Bash deny, a valid defaultMode 'acceptEdits', an env map with string values, and a well-formed PreToolUse hook with an inline (non-script) command. Nothing should be flagged; a false-positive probe over several tricky-valid surfaces.",
+      "settings": {
+        "permissions": {
+          "allow": ["Bash(npm run test:*)", "mcp__github__get_*", "Read(~/notes/**)"],
+          "deny": ["Bash(curl:*)"],
+          "defaultMode": "acceptEdits"
+        },
+        "env": { "FOO": "1", "BAR": "2" },
+        "hooks": { "PreToolUse": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "echo ok" }] }] }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s88"
     }
   ]
 }
