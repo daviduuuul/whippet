@@ -246,6 +246,12 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   const r = run({ settings: { enabledMcpjsonServers: ['anything', 'else'] } });
   ck('ME3 no .mcp.json -> guard skips', !hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json'));
 }
+{ // SK1 real modern settings keys (none edit-distance-1 from a typo target) -> no false "did you mean"
+  const r = run({ settings: { model: 'claude-opus-4-8', effortLevel: 'high', autoMemoryEnabled: true,
+    fallbackModel: 'claude-haiku-4-5', disableWorkflows: false, language: 'it', theme: 'dark',
+    editorMode: 'vim', autoCompactEnabled: true } });
+  ck('SK1 modern valid settings keys -> no typo finding', count(r, 'settings') === 0);
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

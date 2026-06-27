@@ -1,5 +1,5 @@
 {
-  "count": 86,
+  "count": 87,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3887,6 +3887,24 @@
       "mcp": null,
       "issues": [],
       "id": "s85"
+    },
+    {
+      "description": "Clean: a settings.json using a spread of real modern Claude Code top-level keys. Verified against code.claude.com/docs/en/settings (2026-06) that none of these is edit-distance-1 from any of config-audit's settings typo targets, so the conservative 'did you mean' check must stay silent. False-positive probe that locks in the engine's robustness to newer settings keys it does not list.",
+      "settings": {
+        "model": "claude-opus-4-8",
+        "effortLevel": "high",
+        "autoMemoryEnabled": true,
+        "fallbackModel": "claude-haiku-4-5",
+        "disableWorkflows": false,
+        "language": "it",
+        "theme": "dark",
+        "editorMode": "vim",
+        "autoCompactEnabled": true
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s86"
     }
   ]
 }
