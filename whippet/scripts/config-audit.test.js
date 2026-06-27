@@ -489,6 +489,34 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'node "hooks/ghost-xyz-nope.js"' }] }] } } });
   ck('C9 relative hook path missing -> error', hasFinding(r, 'hooks', 'hook script missing: PreToolUse'));
 }
+{ // DUP1 same command + same matcher registered twice -> duplicate warning
+  const r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Edit', hooks: [
+    { type: 'command', command: 'run-linter' },
+    { type: 'command', command: 'run-linter' },
+  ] }] } } });
+  ck('DUP1 duplicate hook command, same matcher -> warning', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
+}
+{ // DUP2 same command across two groups that share a matcher -> duplicate warning
+  const r = run({ settings: { hooks: { PostToolUse: [
+    { matcher: 'Edit', hooks: [{ type: 'command', command: 'run-linter' }] },
+    { matcher: 'Edit', hooks: [{ type: 'command', command: 'run-linter' }] },
+  ] } } });
+  ck('DUP2 duplicate command across same-matcher groups -> warning', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
+}
+{ // DUP3 same command under DIFFERENT matchers -> legitimate, no duplicate (FP guard)
+  const r = run({ settings: { hooks: { PostToolUse: [
+    { matcher: 'Edit', hooks: [{ type: 'command', command: 'run-linter' }] },
+    { matcher: 'Write', hooks: [{ type: 'command', command: 'run-linter' }] },
+  ] } } });
+  ck('DUP3 same command, different matchers -> no duplicate', !hasFinding(r, 'hooks', 'duplicate hook command'));
+}
+{ // DUP4 two distinct commands under the same matcher -> no duplicate (FP guard)
+  const r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Edit', hooks: [
+    { type: 'command', command: 'run-linter' },
+    { type: 'command', command: 'run-formatter' },
+  ] }] } } });
+  ck('DUP4 distinct commands, same matcher -> no duplicate', !hasFinding(r, 'hooks', 'duplicate hook command'));
+}
 { // D5 relative statusLine path under configDir -> NOT flagged
   const root = tmp(); const cfg = path.join(root, '.claude');
   withReal(cfg, 'status.js');

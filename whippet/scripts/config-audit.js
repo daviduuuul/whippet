@@ -322,6 +322,7 @@ function audit(configDir) {
         }
       }
       if (!Array.isArray(groups)) continue;
+      const seenHookCmds = new Set(); // (matcher, command) pairs in this event — to catch exact duplicates
       for (const g of groups) {
         if (g && g.matcher != null) {
           // matcher is match-all ("*"/""), an exact/pipe list (letters|digits|_|"|"), or else a
@@ -353,6 +354,20 @@ function audit(configDir) {
             add('error', 'hooks', `hook script missing: ${event}`,
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
+          }
+          // duplicate registration: the same command under the same matcher, registered twice in
+          // an event, just runs twice — the schema allows it, but it is almost always merge/paste
+          // drift. Keyed by (matcher, command) so the same command under *different* matchers (a
+          // legitimate setup) is never flagged.
+          if (h && typeof h.command === 'string' && h.command.trim()) {
+            const dupKey = `${g && g.matcher != null ? g.matcher : ''} ${h.command.trim()}`;
+            if (seenHookCmds.has(dupKey)) {
+              add('warning', 'hooks', `duplicate hook command: ${event}`,
+                `the same ${event} command is registered more than once under the same matcher, so it runs multiple times: ${h.command.trim()}`,
+                'remove the redundant hook entry', `${label}:hooks.${event}`);
+            } else {
+              seenHookCmds.add(dupKey);
+            }
           }
           // timeout is a positive integer number of seconds; absent uses a default
           if (h && h.timeout !== undefined && (typeof h.timeout !== 'number' || !Number.isInteger(h.timeout) || h.timeout <= 0)) {
