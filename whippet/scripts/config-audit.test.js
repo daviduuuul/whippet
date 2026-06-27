@@ -269,6 +269,32 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   const r2 = run(mcpFix({ mcpServers: { s: { command: 'node', args: ['https://cdn.example.com/x.js'] } } }));
   ck('MS4 var/url args -> no script finding', !hasFinding(r1, 'mcp', 'MCP server script missing') && !hasFinding(r2, 'mcp', 'MCP server script missing'));
 }
+/* ---------------- X. robustness of the night-loop checks on malformed input (never throw) ---------------- */
+{ // X1 enabledMcpjsonServers as a non-array -> no crash, no dead-ref finding
+  let threw = false, r;
+  try { r = run({ settings: { enabledMcpjsonServers: 'memory' }, extra: (cfg) => writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { memory: { type: 'stdio', command: 'node' } } }) }); } catch { threw = true; }
+  ck('X1 enabledMcpjsonServers string -> no crash, no finding', !threw && !hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json'));
+}
+{ // X2 enabledMcpjsonServers with a non-string entry -> no crash, only the string is considered
+  let threw = false, r;
+  try { r = run({ settings: { enabledMcpjsonServers: [42, 'ghost'] }, extra: (cfg) => writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { real: { type: 'stdio', command: 'node' } } }) }); } catch { threw = true; }
+  ck('X2 enabledMcpjsonServers non-string entry -> no crash, flags the string', !threw && hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json: ghost'));
+}
+{ // X3 mcpServers as an array -> no crash
+  let threw = false;
+  try { run(mcpFix({ mcpServers: ['nonsense'] })); } catch { threw = true; }
+  ck('X3 mcpServers array -> no crash', !threw);
+}
+{ // X4 stdio server with non-array args / non-string args -> no crash, no script finding
+  let threw = false, r;
+  try { r = run(mcpFix({ mcpServers: { a: { command: 'node', args: 'server.js' }, b: { command: 'node', args: [7, true] } } })); } catch { threw = true; }
+  ck('X4 odd MCP args -> no crash, no script finding', !threw && !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // X5 malformed hook entries (null entry, numeric command) -> no crash, no duplicate finding
+  let threw = false, r;
+  try { r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Edit', hooks: [null, { type: 'command', command: 5 }, { type: 'command', command: 5 }] }] } } }); } catch { threw = true; }
+  ck('X5 malformed hook entries -> no crash, no duplicate finding', !threw && !hasFinding(r, 'hooks', 'duplicate hook command'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error
