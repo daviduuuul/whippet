@@ -360,7 +360,7 @@ function audit(configDir) {
           // drift. Keyed by (matcher, command) so the same command under *different* matchers (a
           // legitimate setup) is never flagged.
           if (h && typeof h.command === 'string' && h.command.trim()) {
-            const dupKey = `${g && g.matcher != null ? g.matcher : ''} ${h.command.trim()}`;
+            const dupKey = `${g && g.matcher != null ? g.matcher : ''}\u0000${h.command.trim()}`;
             if (seenHookCmds.has(dupKey)) {
               add('warning', 'hooks', `duplicate hook command: ${event}`,
                 `the same ${event} command is registered more than once under the same matcher, so it runs multiple times: ${h.command.trim()}`,
