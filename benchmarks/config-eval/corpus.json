@@ -1,5 +1,5 @@
 {
-  "count": 91,
+  "count": 93,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3969,6 +3969,44 @@
         { "kind": "matcher_ignored", "token": "Stop", "note": "Stop ignores matchers; the matcher is silently dropped" }
       ],
       "id": "s90"
+    },
+    {
+      "description": "Multiple drifts across the newer checks in one config: enabledMcpjsonServers approves 'ghost' which the co-located .mcp.json does not define (dead reference), an http hook has no url (inert), and a Stop hook carries a matcher 'Bash' that Stop silently ignores. Tests that the engine surfaces all three newer drift classes together.",
+      "settings": {
+        "enabledMcpjsonServers": ["ghost"],
+        "hooks": {
+          "PreToolUse": [{ "hooks": [{ "type": "http" }] }],
+          "Stop": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "echo done" }] }]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": { "mcpServers": { "real": { "type": "stdio", "command": "node" } } },
+      "issues": [
+        { "kind": "enabled_mcp_not_found", "token": "ghost", "note": "approved but absent from .mcp.json" },
+        { "kind": "http_hook_missing_url", "token": "PreToolUse", "note": "http hook with no url" },
+        { "kind": "matcher_ignored", "token": "Stop", "note": "Stop ignores matchers" }
+      ],
+      "id": "s91"
+    },
+    {
+      "description": "Clean-but-tricky across the newer checks: enabledMcpjsonServers approves exactly the servers the co-located .mcp.json defines, an http hook has a proper url, a Stop hook (matcher-less event) correctly omits its matcher, and a PreToolUse hook (matcher-full) carries a valid pipe matcher. An npx-based stdio server (no local script) and an http MCP server are both well-formed. None of the newer checks should fire — a false-positive probe over their valid surfaces.",
+      "settings": {
+        "enabledMcpjsonServers": ["memory", "fetch"],
+        "hooks": {
+          "PreToolUse": [{ "matcher": "Bash|Edit", "hooks": [{ "type": "command", "command": "echo pre" }] }],
+          "Stop": [{ "hooks": [{ "type": "command", "command": "echo stop" }] }],
+          "Notification": [{ "hooks": [{ "type": "http", "url": "https://hooks.example.com/notify" }] }]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "memory": { "type": "stdio", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] },
+          "fetch": { "type": "http", "url": "https://mcp.example.com/fetch" }
+        }
+      },
+      "issues": [],
+      "id": "s92"
     }
   ]
 }
