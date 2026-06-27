@@ -45,6 +45,10 @@ function extractScriptPath(cmd) {
   // can't be checked statically: a runtime-resolved path (${CLAUDE_PLUGIN_ROOT}, %VAR%)
   // or a glob argument (e.g. a formatter over src/**/*.js — never a single literal file)
   if (/[$%*?]/.test(sp)) return null;
+  // a URL argument (a curl/fetch download target) is never a local script; guard here so every
+  // caller benefits. Whether a bare, path-less filename counts is left to the caller: an MCP entry
+  // arg is structured (a bare name is the script), but a hook/statusLine shell string is prose-risk.
+  if (sp.includes('://')) return null;
   return sp;
 }
 
@@ -372,7 +376,9 @@ function audit(configDir) {
             continue;
           }
           const sp = extractScriptPath(h && h.command);
-          if (sp && scriptMissing(sp, configDir)) {
+          // a hook command is a shell string, so a bare filename is too often prose (an echo reminder,
+          // a commit message, a notification) — only flag a path-qualified reference (./x.js, dir/x.sh).
+          if (sp && /[\\/]/.test(sp) && scriptMissing(sp, configDir)) {
             add('error', 'hooks', `hook script missing: ${event}`,
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
@@ -405,7 +411,8 @@ function audit(configDir) {
     // statusLine pointing at a missing script
     if (o.statusLine && o.statusLine.command) {
       const sp = extractScriptPath(o.statusLine.command);
-      if (sp && scriptMissing(sp, configDir)) {
+      // same prose guard as the hook caller: a statusLine command is a shell string too.
+      if (sp && /[\\/]/.test(sp) && scriptMissing(sp, configDir)) {
         add('error', 'statusline', 'statusLine script missing',
           `statusLine command points to a missing file: ${sp}`,
           'fix the path or remove statusLine', `${label}:statusLine`);

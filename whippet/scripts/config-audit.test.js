@@ -788,6 +788,25 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   ck('statusLine missing command -> severity error', r2.findings.some(f => f.title === 'statusLine missing command' && f.severity === 'error'));
 }
 
+/* ---------------- F16: URLs & prose filenames are not "script missing" ---------------- */
+ck('G6 URL arg is not a script -> null', extractScriptPath('curl -o /tmp/o https://cdn.example.com/lib.js') === null);
+ck('G7 a path-qualified script is still extracted', extractScriptPath('node "./hooks/x.js"') === './hooks/x.js');
+{ // a hook/statusLine command is a shell string: a URL target or a filename named in prose (echo,
+  // commit message, notification) must not read as a missing local script.
+  const urlHook = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'curl -o /tmp/o https://cdn.example.com/lib.js' }] }] } } });
+  ck('F16 URL download hook -> no script-missing', !hasFinding(urlHook, 'hooks', 'hook script missing'));
+  const proseHook = run({ settings: { hooks: { Stop: [{ hooks: [{ type: 'command', command: 'git commit -m "refactor index.js"' }] }] } } });
+  ck('F16 prose commit-message hook -> no script-missing', !hasFinding(proseHook, 'hooks', 'hook script missing'));
+  const echoHook = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo "run setup.sh now"' }] }] } } });
+  ck('F16 bare filename in echo -> no script-missing', !hasFinding(echoHook, 'hooks', 'hook script missing'));
+  const urlStatus = run({ settings: { statusLine: { type: 'command', command: 'echo see https://host/health.py' } } });
+  ck('F16 URL in statusLine -> no script-missing', !hasFinding(urlStatus, 'statusline', 'statusLine script missing'));
+}
+{ // differentiation: a STRUCTURED MCP entry arg (no prose risk) that is a bare missing filename IS flagged
+  const r = run(mcpFix({ mcpServers: { s: { command: 'node', args: ['missing-server.js'] } } }));
+  ck('F16 MCP bare entry still flagged (prose guard is caller-scoped)', hasFinding(r, 'mcp', 'MCP server script missing: s'));
+}
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);
