@@ -16,7 +16,7 @@
 
 ---
 
-Whippet audits your Claude Code setup for the drift the schema can't catch — dead plugin, hook, and MCP references, fragile local marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files, across `settings.json` and `settings.local.json`. Read-only, deterministic, zero dependencies. Run the full audit on demand with `/whippet-config`; once installed, a quiet advisory at session start speaks up only when your setup has actual errors.
+Whippet audits your Claude Code setup for the drift the schema can't catch — dead plugin, hook, and MCP references, fragile local marketplaces, duplicate components, malformed JSON, mistyped settings keys, and orphaned files, across `settings.json` and `settings.local.json`. Read-only, deterministic, zero dependencies. Run the full audit on demand with `/whippet-config`; once installed, a quiet advisory speaks up only when your setup has actual errors — at session start, and the moment a config edit introduces one.
 
 ## Install
 

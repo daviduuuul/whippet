@@ -5,7 +5,7 @@
   "description": "Config-drift auditor for Claude Code setups",
   "license": "MIT",
   "scripts": {
-    "test": "node whippet/scripts/config-audit.test.js && node whippet/hooks/whippet-config-check.test.js && node scripts/check-manifests.js",
+    "test": "node whippet/scripts/config-audit.test.js && node whippet/hooks/whippet-config-check.test.js && node whippet/hooks/whippet-config-edit-check.test.js && node scripts/check-manifests.js",
     "bump": "node scripts/bump.js"
   }
 }

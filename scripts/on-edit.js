@@ -19,6 +19,7 @@ process.stdin.on('end', () => {
     const run = (s) => execFileSync(process.execPath, [path.join(root, s)], { cwd: root, stdio: 'pipe' });
     run('whippet/scripts/config-audit.test.js');
     run('whippet/hooks/whippet-config-check.test.js');
+    run('whippet/hooks/whippet-config-edit-check.test.js');
     run('scripts/check-manifests.js');
   } catch (e) {
     // A failed suite is the only thing worth saying. Exit 2 feeds stderr back.
