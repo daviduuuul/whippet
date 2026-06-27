@@ -53,9 +53,12 @@ overlap check).
 The corpus and the auditor have both grown past this original run. As the auditor gained new
 conservative checks — dead `enabledMcpjsonServers` references, missing stdio MCP scripts, `http`
 hooks with no `url`, and a matcher on an event that ignores matchers — the corpus added their
-planted cases and false-positive probes. **Current run: 91 scenarios, 92/93 detected (98.9%), 0
-false positives.** The figures above are the historical record of the eval that first exposed the
-four bugs; run `node eval.js corpus.json` for the live numbers.
+planted cases and false-positive probes, and a later review hardened them against false positives
+it surfaced (the stdio MCP script check now only inspects the entry point, so a flag-glued or data
+arg ending in `.js`/`.py` is never flagged; an invalid-regex matcher is no longer reported on a
+matcher-less event, where the matcher is dropped anyway). **Current run: 95 scenarios, 97/98
+detected (99.0%), 0 false positives.** The figures above are the historical record of the eval
+that first exposed the four bugs; run `node eval.js corpus.json` for the live numbers.
 
 **Dogfood:** run against a real local hub config (`$CLAUDE_CONFIG_DIR`) → 0 errors, 0 warnings,
 0 hook/key/enum findings. No false alarms in the wild.
