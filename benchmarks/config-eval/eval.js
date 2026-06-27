@@ -32,6 +32,7 @@ const KIND_CATEGORY = {
   hook_missing_command: 'hooks',
   invalid_hook_timeout: 'hooks',
   unknown_hook_type: 'hooks',
+  duplicate_hook_command: 'hooks',
   enabledplugins_not_object: 'config',
   mcp_invalid_transport: 'mcp',
   mcp_no_transport: 'mcp',

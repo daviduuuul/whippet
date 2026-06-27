@@ -1,5 +1,5 @@
 {
-  "count": 82,
+  "count": 84,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3824,6 +3824,43 @@
       "mcp": null,
       "issues": [],
       "id": "s81"
+    },
+    {
+      "description": "Drift: a PostToolUse hook registers the exact same command twice under the same matcher, so the command runs twice on every matching tool call — the schema allows it but it is redundant merge/paste drift. Should be flagged as a duplicate hook command.",
+      "settings": {
+        "hooks": {
+          "PostToolUse": [
+            {
+              "matcher": "Edit",
+              "hooks": [
+                { "type": "command", "command": "format-all" },
+                { "type": "command", "command": "format-all" }
+              ]
+            }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "duplicate_hook_command", "token": "format-all", "note": "same command registered twice under the same matcher — runs twice" }
+      ],
+      "id": "s82"
+    },
+    {
+      "description": "Valid-but-tricky: the same command is wired under two DIFFERENT matchers (Edit and Write) of the same event — a legitimate setup, the command runs for distinct tool matches. Must NOT be flagged as a duplicate (false-positive probe for the duplicate-hook-command check).",
+      "settings": {
+        "hooks": {
+          "PostToolUse": [
+            { "matcher": "Edit", "hooks": [ { "type": "command", "command": "format-all" } ] },
+            { "matcher": "Write", "hooks": [ { "type": "command", "command": "format-all" } ] }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s83"
     }
   ]
 }
