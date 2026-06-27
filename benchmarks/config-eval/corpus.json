@@ -1,5 +1,5 @@
 {
-  "count": 90,
+  "count": 91,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3953,6 +3953,22 @@
         { "kind": "http_hook_missing_url", "token": "PreToolUse", "note": "an http hook with no url is inert" }
       ],
       "id": "s89"
+    },
+    {
+      "description": "Drift: a Stop hook is given a matcher 'Bash', but Stop hooks always fire and ignore matchers (per the hooks docs), so the matcher is silently dropped and the hook runs on every Stop rather than the intended subset — the user's filtering intent is lost. Should be flagged as a matcher ignored on a matcher-less event.",
+      "settings": {
+        "hooks": {
+          "Stop": [
+            { "matcher": "Bash", "hooks": [{ "type": "command", "command": "echo done" }] }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "matcher_ignored", "token": "Stop", "note": "Stop ignores matchers; the matcher is silently dropped" }
+      ],
+      "id": "s90"
     }
   ]
 }

@@ -31,6 +31,7 @@ const KIND_CATEGORY = {
   invalid_hook_matcher: 'hooks',
   hook_missing_command: 'hooks',
   http_hook_missing_url: 'hooks',
+  matcher_ignored: 'hooks',
   invalid_hook_timeout: 'hooks',
   unknown_hook_type: 'hooks',
   duplicate_hook_command: 'hooks',

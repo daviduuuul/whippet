@@ -303,6 +303,22 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'http', url: 'https://hooks.example.com/x' }] }] } } });
   ck('HT2 http hook with url -> no finding', !hasFinding(r, 'hooks', 'http hook missing url'));
 }
+{ // MI1 a real matcher on a matcher-less event (Stop) -> warning (silently ignored)
+  const r = run({ settings: { hooks: { Stop: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('MI1 matcher on Stop -> warning', hasFinding(r, 'hooks', 'matcher ignored on Stop'));
+}
+{ // MI2 a matcher-less event with no matcher -> clean
+  const r = run({ settings: { hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('MI2 Stop with no matcher -> clean', !hasFinding(r, 'hooks', 'matcher ignored'));
+}
+{ // MI3 a match-all matcher on a matcher-less event -> not flagged (harmless, same behavior)
+  const r = run({ settings: { hooks: { Stop: [{ matcher: '*', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('MI3 Stop with match-all matcher -> clean', !hasFinding(r, 'hooks', 'matcher ignored'));
+}
+{ // MI4 a real matcher on a matcher-FULL event (PreToolUse) -> not flagged
+  const r = run({ settings: { hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('MI4 matcher on PreToolUse -> no matcher-ignored finding', !hasFinding(r, 'hooks', 'matcher ignored'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

@@ -58,6 +58,12 @@ const HOOK_EVENTS = new Set(['SessionStart', 'Setup', 'UserPromptSubmit', 'UserP
   'TaskCompleted', 'Stop', 'StopFailure', 'TeammateIdle', 'InstructionsLoaded', 'ConfigChange',
   'CwdChanged', 'FileChanged', 'WorktreeCreate', 'WorktreeRemove', 'PreCompact', 'PostCompact',
   'Elicitation', 'ElicitationResult', 'SessionEnd']);
+// Events that always fire and ignore a matcher (a real matcher here is silently dropped, so a user
+// who thinks they are filtering is not). Authoritative list: code.claude.com/docs/en/hooks. Kept to
+// the UNAMBIGUOUS subset — WorktreeCreate/WorktreeRemove and MessageDisplay are excluded because the
+// docs are inconsistent about them, so a matcher there is never flagged (conservative, no FP).
+const NO_MATCHER_EVENTS = new Set(['UserPromptSubmit', 'PostToolBatch', 'Stop', 'TeammateIdle',
+  'TaskCreated', 'TaskCompleted', 'CwdChanged']);
 const MCP_TRANSPORTS = new Set(['stdio', 'http', 'streamable-http', 'sse', 'ws']);
 // every transport except stdio is remote and needs a url — derived so it can't drift from the set
 const MCP_URL_TRANSPORTS = [...MCP_TRANSPORTS].filter(t => t !== 'stdio');
@@ -328,6 +334,11 @@ function audit(configDir) {
           // matcher is match-all ("*"/""), an exact/pipe list (letters|digits|_|"|"), or else a
           // JS regex (code.claude.com/docs/en/hooks) — only the regex form can be malformed.
           const mt = String(g.matcher);
+          if (NO_MATCHER_EVENTS.has(event) && mt !== '*' && mt !== '') {
+            add('warning', 'hooks', `matcher ignored on ${event}`,
+              `${event} hooks always fire and ignore any matcher, so "${mt}" silently does nothing`,
+              'remove the matcher; the hook already runs on every occurrence', `${label}:hooks.${event}`);
+          }
           if (mt !== '*' && mt !== '' && !/^[\w|]+$/.test(mt)) {
             try { new RegExp(mt); }
             catch {
