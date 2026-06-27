@@ -1,63 +1,88 @@
 #!/usr/bin/env node
 'use strict';
-// PostToolUse(Edit|Write): the moment an edit to settings.json / settings.local.json
-// leaves the Claude config with a NEW error, surface ONE quiet advisory to stdout.
-// Same engine as /whippet-config and the SessionStart check; warnings/info stay silent
-// (those wait for /whippet-config, so this never nags). Each distinct error is announced
-// at most once per session: a tiny per-session cache in the OS temp dir remembers the
-// error signatures already reported, so a persistent error never re-fires across repeated
-// config edits. Advisory only (exit 0, never blocks the edit). Never throws. Off with
-// WHIPPET_CONFIG_OFF=1.
+// PreToolUse + PostToolUse (Edit|Write) advisory for edits to settings.json / settings.local.json.
+// Goal: when an edit INTRODUCES a new error, surface ONE quiet line — where "new" means present
+// after the edit but NOT before it. The PreToolUse run snapshots the edited file's error signatures
+// (the file is still pre-edit on disk); the PostToolUse run re-audits and reports only the errors
+// the edit added, scoped to THAT file — so a pre-existing error elsewhere (e.g. in .mcp.json) is
+// never misattributed to this edit. Same engine as /whippet-config and the SessionStart check;
+// warnings/info stay silent (they wait for /whippet-config, so this never nags). Advisory only:
+// exit 0, never blocks the edit, never throws. Off with WHIPPET_CONFIG_OFF=1.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-// settings*.json are the engine's direct inputs; an edit there is what can introduce
-// the drift the schema can't catch (dead refs, duplicates, typo'd keys, malformed JSON).
 const CONFIG_FILES = new Set(['settings.json', 'settings.local.json']);
-const sigOf = (f) => `${f.category}\u0000${f.title}`;
+const PHASE = process.argv[2] === 'pre' ? 'pre' : 'post';
+const sanitize = (s) => String(s).replace(/[^a-zA-Z0-9_-]/g, '_');
 
-function seenPath(sessionId) {
-  const sid = String(sessionId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
-  return path.join(os.tmpdir(), `whippet-config-seen-${sid}.json`);
+// Signature = category + title + evidence + detail. Including detail is what keeps two distinct
+// errors that share a title AND an evidence label (e.g. two different broken hooks under one event —
+// same `settings.json:hooks.PostToolUse` evidence, but the detail names the specific missing script)
+// from collapsing into one, so fixing hook A while introducing hook B is still reported. detail is
+// deterministic from the config, so an unchanged error keeps a stable signature (no spurious "new").
+const sigOf = (f) => JSON.stringify([f.category, f.title, f.evidence, f.detail]);
+
+// A finding belongs to the edited file when its evidence is labelled with that file's name.
+// Findings with no file label (e.g. an mcpServers.* error sourced from .mcp.json) are NOT
+// attributable to a settings.json edit, so the advisory never blames the wrong file.
+const belongsTo = (f, base) => {
+  const ev = String(f.evidence || '');
+  return ev === base || ev.startsWith(base + ':');
+};
+
+function baselinePath(sessionId, base) {
+  return path.join(os.tmpdir(), `whippet-edit-base-${sanitize(sessionId)}-${sanitize(base)}.json`);
 }
-function loadSeen(p) {
-  try { const a = JSON.parse(fs.readFileSync(p, 'utf8')); return new Set(Array.isArray(a) ? a : []); }
-  catch { return new Set(); }
+
+// Error signatures attributable to `base` in the current on-disk state of configDir. Returns null
+// if the audit cannot run, so the caller can stay silent rather than guess.
+function errorSigs(configDir, base) {
+  let report;
+  try { report = require('../scripts/config-audit.js').audit(configDir); } catch { return null; }
+  const sigs = [];
+  for (const f of report.findings) {
+    if (f.severity === 'error' && belongsTo(f, base)) sigs.push(sigOf(f));
+  }
+  return sigs;
 }
-function saveSeen(p, set) {
-  try { fs.writeFileSync(p, JSON.stringify([...set])); } catch { /* best effort: re-announce next time is acceptable */ }
+
+function main(input) {
+  if (process.env.WHIPPET_CONFIG_OFF) return;
+  const evt = JSON.parse(input || '{}');
+  const filePath = (evt.tool_input || {}).file_path || '';
+  const base = path.posix.basename(String(filePath).replace(/\\/g, '/'));
+  if (!CONFIG_FILES.has(base)) return;
+
+  const configDir = path.dirname(filePath);
+  const stash = baselinePath(evt.session_id, base);
+
+  if (PHASE === 'pre') {
+    // Snapshot the pre-edit error set for this file; say nothing.
+    const before = errorSigs(configDir, base);
+    if (before) { try { fs.writeFileSync(stash, JSON.stringify(before)); } catch { /* best effort */ } }
+    return;
+  }
+
+  // PHASE === 'post': compare the post-edit state to the pre-edit snapshot.
+  const after = errorSigs(configDir, base);
+  if (!after) return;
+
+  let before = null;
+  try { before = JSON.parse(fs.readFileSync(stash, 'utf8')); } catch { before = null; }
+  try { fs.unlinkSync(stash); } catch { /* best effort */ }
+  if (!Array.isArray(before)) return; // no reliable pre-edit baseline -> stay silent, don't misattribute
+
+  const beforeSet = new Set(before);
+  const introduced = after.filter((s) => !beforeSet.has(s));
+  if (introduced.length === 0) return;
+
+  process.stdout.write(
+    `whippet config: this edit introduced ${introduced.length} new error(s) in ${base}` +
+    ` — run /whippet-config for details. (off: WHIPPET_CONFIG_OFF=1)`);
 }
 
 let input = '';
 process.stdin.on('data', (d) => { input += d; });
 process.stdin.on('error', () => process.exit(0));
-process.stdin.on('end', () => {
-  try {
-    if (process.env.WHIPPET_CONFIG_OFF) process.exit(0);
-
-    const evt = JSON.parse(input || '{}');
-    const filePath = (evt.tool_input || {}).file_path || '';
-    if (!CONFIG_FILES.has(path.posix.basename(filePath.replace(/\\/g, '/')))) process.exit(0);
-
-    // Audit the config dir that owns the edited file — consistent with resolveConfigDir
-    // for ~/.claude, and correct for project-level .claude/ edits too.
-    const { audit } = require('../scripts/config-audit.js');
-    const rep = audit(path.dirname(filePath));
-    const errSigs = rep.findings.filter((f) => f.severity === 'error').map(sigOf);
-    if (errSigs.length === 0) process.exit(0);
-
-    const p = seenPath(evt.session_id);
-    const seen = loadSeen(p);
-    const fresh = errSigs.filter((s) => !seen.has(s));
-    if (fresh.length === 0) process.exit(0); // already reported this session — don't nag
-
-    for (const s of errSigs) seen.add(s);
-    saveSeen(p, seen);
-
-    process.stdout.write(
-      `whippet config: this edit introduced ${fresh.length} new error(s) in your Claude setup` +
-      ` — run /whippet-config for details. (off: WHIPPET_CONFIG_OFF=1)`);
-  } catch { /* degrade silently */ }
-  process.exit(0);
-});
+process.stdin.on('end', () => { try { main(input); } catch { /* degrade silently */ } process.exit(0); });

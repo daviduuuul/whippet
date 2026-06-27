@@ -12,13 +12,25 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-config-edit-check.js\" pre",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-config-edit-check.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/whippet-config-edit-check.js\" post",
             "timeout": 5
           }
         ]
