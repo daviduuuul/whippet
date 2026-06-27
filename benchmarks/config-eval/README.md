@@ -48,6 +48,15 @@ not a near-miss of any real key (`enviroment` for `env`), and a deny glob that *
 glob without being an exact string match (needs glob-containment, out of scope for the exact-match
 overlap check).
 
+## Since then (kept current)
+
+The corpus and the auditor have both grown past this original run. As the auditor gained new
+conservative checks — dead `enabledMcpjsonServers` references, missing stdio MCP scripts, `http`
+hooks with no `url`, and a matcher on an event that ignores matchers — the corpus added their
+planted cases and false-positive probes. **Current run: 91 scenarios, 92/93 detected (98.9%), 0
+false positives.** The figures above are the historical record of the eval that first exposed the
+four bugs; run `node eval.js corpus.json` for the live numbers.
+
 **Dogfood:** run against a real local hub config (`$CLAUDE_CONFIG_DIR`) → 0 errors, 0 warnings,
 0 hook/key/enum findings. No false alarms in the wild.
 
