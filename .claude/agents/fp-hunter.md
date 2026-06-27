@@ -26,8 +26,12 @@ function probe(label, settings, files){
   }
   let out; try { out=audit(d).findings; } catch(e){ console.log("THREW", label, e.message); fs.rmSync(d,{recursive:true,force:true}); return; }
   fs.rmSync(d,{recursive:true,force:true});
-  const content=out.filter(f=>!/script missing/.test(f.title)); // filesystem-dependent; out of scope unless you fabricate the file
-  if(content.length) console.log("FP?", label, JSON.stringify(content.map(f=>`${f.severity}|${f.category}:${f.title}`)));
+  // Print ALL findings — do NOT blanket-filter "script missing". That title is exactly where a whole
+  // FP class hides: the engine mistaking a flag-glued arg (--config=cfg.js) or a data file (./data.py)
+  // for a launch script. For a config whose script reference is GENUINELY valid, fabricate the file in
+  // `files` so a correct config stays clean; then any "script missing" left on a config whose "path" is
+  // really a flag / data file / ${VAR} / glob is a TRUE false positive worth reporting.
+  if(out.length) console.log("FP?", label, JSON.stringify(out.map(f=>`${f.severity}|${f.category}:${f.title}`)));
   else console.log("clean", label);
 }
 // --- your probes go here ---
@@ -35,7 +39,7 @@ probe("valid http hook with url", {hooks:{PreToolUse:[{hooks:[{type:"http",url:"
 '
 ```
 
-A `.mcp.json` or `settings.local.json` goes in the `files` map (e.g. `{ ".mcp.json": {mcpServers:{...}} }`). To clear a `script missing` finding instead of filtering it, fabricate the referenced file in `files`.
+A `.mcp.json` or `settings.local.json` goes in the `files` map (e.g. `{ ".mcp.json": {mcpServers:{...}} }`). To make a script reference genuinely valid, **fabricate the referenced file** in `files` — then a remaining `script missing` is a real false positive, not a sandbox artifact.
 
 ## Method
 
@@ -43,7 +47,7 @@ A `.mcp.json` or `settings.local.json` goes in the `files` map (e.g. `{ ".mcp.js
 
 2. **For each check, build its closest valid neighbors** — configs that share the check's surface but are legitimately correct. These are where false positives hide. Think:
    - the **right** version of the wrong pattern (http hook *with* a url; statusLine `type:"command"` *with* a command; a matcher on an event that *does* honor matchers; an `enabledMcpjsonServers` name that *is* in the co-located `.mcp.json`).
-   - **unresolvable-on-purpose** values the engine must skip, not flag: `${CLAUDE_PLUGIN_ROOT}/x.js`, `%VAR%\x.ps1`, a glob arg (`prettier "src/**/*.js"`), a bare exec or `npx`/`@scope/pkg`, a URL where a path is expected.
+   - **not-a-launch-script args** — the richest FP vein for the stdio-MCP and hook script checks: a **flag-glued path** (`--config=cfg.js`, `--tsconfig=./t.json`), a **data/asset arg** that merely ends in `.py`/`.js`/`.sh`/`.sql` but isn't the entry script (`./data.py`, `seed.sql`), a path **relative to a different launch dir**, `${CLAUDE_PLUGIN_ROOT}/x.js`, `%VAR%\x.ps1`, a glob arg (`prettier "src/**/*.js"`), a bare exec / `npx` / `@scope/pkg`, or a URL where a path is expected. The engine must skip all of these — a `script missing` on any of them is a false positive.
    - **valid-but-unusual** shapes: match-all matchers (`*` and `""`), permission rules with wildcards (`mcp__srv__*`, `Bash(npm run *)`), modern/rare-but-real settings keys, empty arrays/objects, deeply nested but well-formed hooks.
    - **malformed-but-must-not-throw**: arrays where objects are expected, numbers where strings are expected, `null` entries, `mcpServers` as an array. A throw is as bad as a false positive — report it.
 
