@@ -85,6 +85,8 @@ no in-scope finding). Often folded into a multi-surface clean scenario, e.g.:
 }
 ```
 
+After adding the two scenarios, **bump the corpus `count` field** if the file has one, so it stays in sync with the actual scenario total (this is easy to miss when working only from this example — it's also in SKILL.md Step 5).
+
 ## 5. Verify, in order
 
 ```bash
