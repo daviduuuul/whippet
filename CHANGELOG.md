@@ -4,6 +4,30 @@ All notable changes to this plugin. Versions follow the `vX.Y.Z` git tags.
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-06-27
+
+Six new conservative checks and a mid-session advisory. Config-eval recall 98.8% → 99.0%,
+zero false positives — verified by an independent adversarial false-positive sweep (URLs, prose
+filenames, flag-glued args, every MCP transport, malformed input).
+
+### Added
+- New `config-audit` checks, each firing only on the unambiguous case:
+  - a dead **`enabledMcpjsonServers`** reference — a name absent from the co-located `.mcp.json`;
+  - a **stdio MCP server whose entry script is missing** (only the entry point is inspected, so a
+    flag-glued arg or a data file ending in `.js`/`.py` is never mistaken for the script);
+  - an **`http` hook with no `url`**, and a **`command`-type statusLine with no command** — both inert;
+  - a **matcher set on a hook event that ignores matchers** (the filter is silently dropped);
+  - a **duplicate hook command** under the same matcher (info — Claude Code de-duplicates these).
+- A **mid-session config-drift advisory**: a `PreToolUse` + `PostToolUse` pair on edits to
+  `settings.json` / `settings.local.json` prints one quiet line **only when the edit introduces a
+  new error**, compared against the pre-edit state and scoped to the edited file. Errors only
+  (warnings/info wait for `/whippet-config`); silence it with `WHIPPET_CONFIG_OFF=1`.
+
+### Notes
+- Detect-only and conservative throughout: a finding fires only when a referent is genuinely
+  broken or inert, so the SessionStart and mid-session advisories never nag. A URL download hook,
+  a filename merely named in prose, and `${VAR}`/glob/`npx` script arguments are all left alone.
+
 ## [3.0.1] - 2026-06-22
 
 Precision & recall patch for config-audit — eval-driven, every change verified against
