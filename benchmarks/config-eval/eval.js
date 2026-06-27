@@ -39,6 +39,7 @@ const KIND_CATEGORY = {
   mcp_command_and_url: 'mcp',
   mcp_missing_command: 'mcp',
   mcp_missing_url: 'mcp',
+  enabled_mcp_not_found: 'mcp',
 };
 // content checks we score; everything else (plugins/manifest/marketplace/stale/duplicate/frontmatter) is out of scope
 const IN_SCOPE = new Set(['settings', 'permissions', 'hooks', 'mcp', 'statusline', 'config']);

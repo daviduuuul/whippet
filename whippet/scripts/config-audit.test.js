@@ -232,6 +232,20 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
 { // I7 server with no transport at all (no command/url/type) -> error, not silent
   ck('I7 no-transport MCP server -> error', hasFinding(run(mcpFix({ mcpServers: { stripped: { env: {} } } })), 'mcp', 'MCP server has no transport: stripped'));
 }
+{ // ME1 enabledMcpjsonServers names a server absent from the co-located .mcp.json -> warning
+  const r = run({ settings: { enabledMcpjsonServers: ['ghost'] },
+    extra: (cfg) => writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { real: { type: 'stdio', command: 'node' } } }) });
+  ck('ME1 enabled MCP not in .mcp.json -> warning', hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json: ghost'));
+}
+{ // ME2 enabledMcpjsonServers all defined in .mcp.json -> no false positive
+  const r = run({ settings: { enabledMcpjsonServers: ['real'] },
+    extra: (cfg) => writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { real: { type: 'stdio', command: 'node' } } }) });
+  ck('ME2 enabled MCP present -> no finding', !hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json'));
+}
+{ // ME3 enabledMcpjsonServers but no co-located .mcp.json -> co-location guard stays silent
+  const r = run({ settings: { enabledMcpjsonServers: ['anything', 'else'] } });
+  ck('ME3 no .mcp.json -> guard skips', !hasFinding(r, 'mcp', 'enabled MCP server not in .mcp.json'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

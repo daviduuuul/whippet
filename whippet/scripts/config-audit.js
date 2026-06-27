@@ -444,6 +444,26 @@ function audit(configDir) {
         'only "command" is supported, so the statusLine is inert',
         'set statusLine.type to "command"', `${label}:statusLine.type`);
     }
+
+    // enabledMcpjsonServers names project .mcp.json servers to auto-approve; a name with no matching
+    // server in this config's own .mcp.json is a dead reference (renamed/removed server). Guard: only
+    // when a co-located .mcp.json actually defines servers — a global config with no .mcp.json (whose
+    // enabled list legitimately points at other projects' files) is never false-flagged.
+    if (Array.isArray(o.enabledMcpjsonServers)) {
+      const proj = readJSON(path.join(configDir, '.mcp.json'));
+      const pd = proj.ok ? asObj(proj.data) : null;
+      const defined = pd ? asObj(pd.mcpServers) : null;
+      if (defined && Object.keys(defined).length) {
+        const names = new Set(Object.keys(defined));
+        for (const name of o.enabledMcpjsonServers) {
+          if (typeof name === 'string' && name && !name.includes('*') && !names.has(name)) {
+            add('warning', 'mcp', `enabled MCP server not in .mcp.json: ${name}`,
+              `enabledMcpjsonServers lists "${name}", but the .mcp.json in this config defines no such server`,
+              'fix the name or remove it from enabledMcpjsonServers', `${label}:enabledMcpjsonServers`);
+          }
+        }
+      }
+    }
   }
   checkStructured(s, 'settings.json');
   checkStructured(local, 'settings.local.json');

@@ -1,5 +1,5 @@
 {
-  "count": 84,
+  "count": 86,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3861,6 +3861,32 @@
       "mcp": null,
       "issues": [],
       "id": "s83"
+    },
+    {
+      "description": "Drift: settings.json approves an MCP server via enabledMcpjsonServers that the co-located .mcp.json does not define (typo or removed server) — a dead reference, so the intended server is never actually enabled. The .mcp.json defines 'memory'; the settings approve 'memo'.",
+      "settings": {
+        "enabledMcpjsonServers": ["memo"]
+      },
+      "settingsLocal": null,
+      "mcp": {
+        "mcpServers": {
+          "memory": { "type": "stdio", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] }
+        }
+      },
+      "issues": [
+        { "kind": "enabled_mcp_not_found", "token": "memo", "note": "enabledMcpjsonServers approves 'memo' but .mcp.json defines 'memory'" }
+      ],
+      "id": "s84"
+    },
+    {
+      "description": "Valid-but-tricky: settings.json lists enabledMcpjsonServers but this config has NO co-located .mcp.json (the approved servers live in other projects' .mcp.json files). The dead-reference check must stay silent here — false-positive probe for the co-location guard.",
+      "settings": {
+        "enabledMcpjsonServers": ["some-project-server", "another-one"]
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [],
+      "id": "s85"
     }
   ]
 }
