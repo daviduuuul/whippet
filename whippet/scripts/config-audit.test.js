@@ -252,6 +252,23 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
     editorMode: 'vim', autoCompactEnabled: true } });
   ck('SK1 modern valid settings keys -> no typo finding', count(r, 'settings') === 0);
 }
+{ // MS1 stdio server whose arg is a local script that does not exist -> error
+  const r = run(mcpFix({ mcpServers: { s: { command: 'node', args: ['missing-server.js'] } } }));
+  ck('MS1 stdio missing script -> error', hasFinding(r, 'mcp', 'MCP server script missing: s'));
+}
+{ // MS2 npx + package specifier -> no script-missing (bare exec + @scope/pkg are not script paths)
+  const r = run(mcpFix({ mcpServers: { s: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory'] } } }));
+  ck('MS2 npx package -> no script finding', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // MS3 stdio server whose script actually exists -> no finding
+  const r = run({ settings: {}, extra: (cfg) => { writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { s: { command: 'node', args: ['server.js'] } } }); withReal(cfg, 'server.js'); } });
+  ck('MS3 stdio script present -> no finding', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // MS4 runtime-var path and URL arg are never flagged (FP guards)
+  const r1 = run(mcpFix({ mcpServers: { s: { command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/x.js'] } } }));
+  const r2 = run(mcpFix({ mcpServers: { s: { command: 'node', args: ['https://cdn.example.com/x.js'] } } }));
+  ck('MS4 var/url args -> no script finding', !hasFinding(r1, 'mcp', 'MCP server script missing') && !hasFinding(r2, 'mcp', 'MCP server script missing'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

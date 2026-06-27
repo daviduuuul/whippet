@@ -497,6 +497,22 @@ function audit(configDir) {
         'no command (stdio), url (http/sse), or type — nothing to launch or connect to',
         'add a command, a url, or a type', `mcpServers.${name}`);
     }
+    // stdio command/args pointing to a local script file that does not exist -> the server can't
+    // launch. Reuse the hook script heuristic: only an explicit *.js/.mjs/.cjs/.py/.ps1/.sh path is
+    // considered — bare execs (node/npx/uvx/python), package specifiers, flags, globs and ${VAR}
+    // paths return null, so npx/uvx-style servers are never false-flagged. URL args are skipped too.
+    if (type === 'stdio') {
+      for (const tok of [def.command, ...(Array.isArray(def.args) ? def.args : [])]) {
+        if (typeof tok !== 'string' || tok.includes('://')) continue;
+        const sp = extractScriptPath(tok);
+        if (sp && scriptMissing(sp, configDir)) {
+          add('error', 'mcp', `MCP server script missing: ${name}`,
+            `the stdio command for "${name}" points to a file that does not exist: ${sp}`,
+            'fix the path or the server definition', `mcpServers.${name}`);
+          break;
+        }
+      }
+    }
   }
 
   // 3c. other config files that exist but don't parse
