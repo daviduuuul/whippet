@@ -27,6 +27,7 @@ const KIND_CATEGORY = {
   invalid_default_mode: 'settings',
   invalid_autoupdates_channel: 'settings',
   invalid_statusline_type: 'statusline',
+  statusline_missing_command: 'statusline',
   unknown_hook_event: 'hooks',
   invalid_hook_matcher: 'hooks',
   hook_missing_command: 'hooks',

@@ -319,6 +319,14 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   const r = run({ settings: { hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
   ck('MI4 matcher on PreToolUse -> no matcher-ignored finding', !hasFinding(r, 'hooks', 'matcher ignored'));
 }
+{ // SL1 a command-type statusLine with no command -> error (inert, mirrors command hook missing command)
+  const r = run({ settings: { statusLine: { type: 'command' } } });
+  ck('SL1 statusLine type command, no command -> error', hasFinding(r, 'statusline', 'statusLine missing command'));
+}
+{ // SL2 a command-type statusLine with a command -> clean (FP guard)
+  const r = run({ settings: { statusLine: { type: 'command', command: 'echo hi' } } });
+  ck('SL2 statusLine with command -> no missing-command finding', !hasFinding(r, 'statusline', 'statusLine missing command'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

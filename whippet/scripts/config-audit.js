@@ -462,6 +462,13 @@ function audit(configDir) {
         'only "command" is supported, so the statusLine is inert',
         'set statusLine.type to "command"', `${label}:statusLine.type`);
     }
+    // a command-type statusLine with no command string renders nothing — inert, mirroring the
+    // command-hook-with-no-command check. Only fired when type is explicitly "command".
+    if (o.statusLine && o.statusLine.type === 'command' && !o.statusLine.command) {
+      add('error', 'statusline', 'statusLine missing command',
+        'a command-type statusLine has no command string, so nothing renders',
+        'add a command or remove statusLine', `${label}:statusLine`);
+    }
 
     // enabledMcpjsonServers names project .mcp.json servers to auto-approve; a name with no matching
     // server in this config's own .mcp.json is a dead reference (renamed/removed server). Guard: only

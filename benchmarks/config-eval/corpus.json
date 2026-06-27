@@ -1,5 +1,5 @@
 {
-  "count": 93,
+  "count": 94,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -4007,6 +4007,18 @@
       },
       "issues": [],
       "id": "s92"
+    },
+    {
+      "description": "Drift: a command-type statusLine has no command string, so nothing renders — Claude Code accepts the entry but the statusLine is inert (parallel to a command hook with no command). Should be flagged as a statusLine missing its command.",
+      "settings": {
+        "statusLine": { "type": "command" }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "statusline_missing_command", "token": "statusLine missing command", "note": "command-type statusLine with no command is inert" }
+      ],
+      "id": "s93"
     }
   ]
 }
