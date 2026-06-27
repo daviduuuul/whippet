@@ -329,17 +329,22 @@ function audit(configDir) {
       }
       if (!Array.isArray(groups)) continue;
       const seenHookCmds = new Set(); // (matcher, command) pairs in this event — to catch exact duplicates
+      let matcherIgnoredWarned = false; // a matcher-less event needs the "ignored" warning only once
       for (const g of groups) {
         if (g && g.matcher != null) {
           // matcher is match-all ("*"/""), an exact/pipe list (letters|digits|_|"|"), or else a
           // JS regex (code.claude.com/docs/en/hooks) — only the regex form can be malformed.
           const mt = String(g.matcher);
-          if (NO_MATCHER_EVENTS.has(event) && mt !== '*' && mt !== '') {
+          const matcherless = NO_MATCHER_EVENTS.has(event);
+          if (matcherless && mt !== '*' && mt !== '' && !matcherIgnoredWarned) {
+            matcherIgnoredWarned = true;
             add('warning', 'hooks', `matcher ignored on ${event}`,
               `${event} hooks always fire and ignore any matcher, so "${mt}" silently does nothing`,
               'remove the matcher; the hook already runs on every occurrence', `${label}:hooks.${event}`);
           }
-          if (mt !== '*' && mt !== '' && !/^[\w|]+$/.test(mt)) {
+          // a matcher-less event drops the matcher entirely, so its regex validity is moot —
+          // flagging an "invalid regex" here would contradict the "ignored" warning above.
+          if (!matcherless && mt !== '*' && mt !== '' && !/^[\w|]+$/.test(mt)) {
             try { new RegExp(mt); }
             catch {
               add('error', 'hooks', `invalid hook matcher: ${event}`,
@@ -527,14 +532,21 @@ function audit(configDir) {
     // considered — bare execs (node/npx/uvx/python), package specifiers, flags, globs and ${VAR}
     // paths return null, so npx/uvx-style servers are never false-flagged. URL args are skipped too.
     if (type === 'stdio') {
-      for (const tok of [def.command, ...(Array.isArray(def.args) ? def.args : [])]) {
-        if (typeof tok !== 'string' || tok.includes('://')) continue;
-        const sp = extractScriptPath(tok);
-        if (sp && scriptMissing(sp, configDir)) {
+      // Only the ENTRY POINT can be a launch script: the command itself, or args[0] when the command
+      // is an interpreter. Later args are arguments (config/data files), and flag-shaped tokens
+      // (-x, --x=y) are never a path — so a healthy server whose args merely end in .js/.py (e.g.
+      // "--config=cfg.js" or a data file "./seed.py") is not false-flagged. A server with an explicit
+      // cwd resolves a relative entry from there, not from configDir, so we can't judge it — skip.
+      const stdioArgs = Array.isArray(def.args) ? def.args : [];
+      const entry = [def.command, stdioArgs[0]].find(
+        (t) => typeof t === 'string' && !t.includes('://') && !t.startsWith('-') && !t.includes('=') && extractScriptPath(t));
+      if (entry) {
+        const sp = extractScriptPath(entry);
+        const relFromCwd = !path.isAbsolute(sp) && typeof def.cwd === 'string';
+        if (!relFromCwd && scriptMissing(sp, configDir)) {
           add('error', 'mcp', `MCP server script missing: ${name}`,
             `the stdio command for "${name}" points to a file that does not exist: ${sp}`,
             'fix the path or the server definition', `mcpServers.${name}`);
-          break;
         }
       }
     }

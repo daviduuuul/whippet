@@ -732,6 +732,53 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
 }
 
 
+/* ---------------- FP regressions: MCP stdio entry-only (F1/F8) ---------------- */
+{ // FP1a a flag-glued arg ending in .js is not the launch script -> clean (real entry server.js exists)
+  const r = audit(build({ extra: (cfg) => {
+    writeJSON(path.join(cfg, '.mcp.json'), { mcpServers: { srv: { type: 'stdio', command: 'node', args: ['server.js', '--config=cfg.js'] } } });
+    withReal(cfg, 'server.js');
+  } }).cfg);
+  ck('FP1a stdio flag-glued .js arg -> no script-missing FP', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // FP1b a module/data arg (python -m srv ./data.py) is not the entry script -> clean
+  const r = run(mcpFix({ mcpServers: { srv: { type: 'stdio', command: 'python', args: ['-m', 'srv', './data.py'] } } }));
+  ck('FP1b stdio data/module arg -> no script-missing FP', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // FP1c an npx/@scope server has no local script -> clean
+  const r = run(mcpFix({ mcpServers: { srv: { type: 'stdio', command: 'npx', args: ['-y', '@scope/pkg'] } } }));
+  ck('FP1c stdio npx -> no script-missing FP', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+{ // TP a genuinely missing entry script (command or args[0]) is STILL flagged -> the check isn't gutted
+  const r1 = run(mcpFix({ mcpServers: { srv: { type: 'stdio', command: 'node', args: ['./missing.js'] } } }));
+  ck('TP stdio missing args[0] entry -> error', hasFinding(r1, 'mcp', 'MCP server script missing: srv')
+    && r1.findings.some(f => f.category === 'mcp' && /script missing/.test(f.title) && f.severity === 'error'));
+  const r2 = run(mcpFix({ mcpServers: { srv: { type: 'stdio', command: './missing.py' } } }));
+  ck('TP stdio missing command entry -> error', hasFinding(r2, 'mcp', 'MCP server script missing: srv'));
+}
+{ // F8 a relative entry with an explicit cwd resolves from there, not configDir -> not flagged
+  const r = run(mcpFix({ mcpServers: { srv: { type: 'stdio', command: 'node', args: ['./server.js'], cwd: '/elsewhere' } } }));
+  ck('F8 stdio rel entry + cwd -> no script-missing FP', !hasFinding(r, 'mcp', 'MCP server script missing'));
+}
+
+/* ---------------- FP regressions: matcher on a matcher-less event (F3/F7) ---------------- */
+{ // F3 an unparseable matcher on a matcher-less event is moot (matcher dropped) -> warning only, NO error
+  const r = run({ settings: { hooks: { Stop: [{ matcher: '[unclosed', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('F3 invalid matcher on Stop -> matcher-ignored warning', hasFinding(r, 'hooks', 'matcher ignored on Stop'));
+  ck('F3 invalid matcher on Stop -> NO contradictory error', !hasFinding(r, 'hooks', 'invalid hook matcher'));
+}
+{ // F3b on a matcher-FULL event the matcher is actually used, so an unparseable one is STILL an error
+  const r = run({ settings: { hooks: { PreToolUse: [{ matcher: '[unclosed', hooks: [{ type: 'command', command: 'echo x' }] }] } } });
+  ck('F3b invalid matcher on PreToolUse -> error', hasFinding(r, 'hooks', 'invalid hook matcher: PreToolUse')
+    && r.findings.some(f => f.category === 'hooks' && /invalid hook matcher/.test(f.title) && f.severity === 'error'));
+}
+{ // F7 two groups under one matcher-less event each set a matcher -> the "ignored" warning is emitted once
+  const r = run({ settings: { hooks: { Stop: [
+    { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo a' }] },
+    { matcher: 'Edit', hooks: [{ type: 'command', command: 'echo b' }] },
+  ] } } });
+  ck('F7 matcher-ignored deduped per event', r.findings.filter(f => f.title === 'matcher ignored on Stop').length === 1);
+}
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);
