@@ -1,5 +1,5 @@
 {
-  "count": 94,
+  "count": 95,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -4019,6 +4019,22 @@
         { "kind": "statusline_missing_command", "token": "statusLine missing command", "note": "command-type statusLine with no command is inert" }
       ],
       "id": "s93"
+    },
+    {
+      "description": "Drift: a Stop hook (a matcher-less event) carries an unparseable regex matcher '[unclosed'. The matcher is dropped at runtime, so the only correct finding is the matcher-ignored warning — the regex's invalidity is moot and must NOT raise a contradictory error-severity 'invalid hook matcher'. Locks the fix that suppresses the invalid-regex check on matcher-less events (any such error here would score as a false positive).",
+      "settings": {
+        "hooks": {
+          "Stop": [
+            { "matcher": "[unclosed", "hooks": [{ "type": "command", "command": "echo done" }] }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "matcher_ignored", "token": "Stop", "note": "matcher dropped on a matcher-less event; no invalid-regex error" }
+      ],
+      "id": "s94"
     }
   ]
 }

@@ -61,9 +61,11 @@ function findingsFor(scenario) {
 
 function scoreScenario(s) {
   const findings = findingsFor(s);
-  // 'script missing' (hook/statusLine) is filesystem-dependent — the corpus references real-looking
-  // script paths that don't exist in the temp sandbox, so those findings are eval artifacts, not
-  // content false-positives. Excluded from scope like the plugin/manifest checks.
+  // 'script missing' findings (hook, statusLine, AND the MCP stdio entry check) are filesystem-
+  // dependent — the corpus references real-looking script paths that don't exist in the temp sandbox,
+  // so those findings are eval artifacts, not content false-positives. All three are out of eval scope
+  // and covered instead by unit tests in config-audit.test.js (incl. the entry-only / flag-arg FP
+  // probes); the /script missing/ title match catches every one.
   const inScope = findings.filter(f => IN_SCOPE.has(f.category) && !/script missing/.test(f.title));
   const issues = s.issues || [];
   // recall: each planted issue matched by >=1 finding of the mapped category naming its token

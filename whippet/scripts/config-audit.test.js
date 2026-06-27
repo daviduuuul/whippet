@@ -779,6 +779,15 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
   ck('F7 matcher-ignored deduped per event', r.findings.filter(f => f.title === 'matcher ignored on Stop').length === 1);
 }
 
+/* ---------------- severity contract for the error-severity checks (F10) ---------------- */
+{ // hasFinding matches category+title and ignores severity, so assert the severity explicitly:
+  // a check silently downgraded to a warning would otherwise still "pass".
+  const r1 = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'http' }] }] } } });
+  ck('http hook missing url -> severity error', r1.findings.some(f => f.title === 'http hook missing url: PreToolUse' && f.severity === 'error'));
+  const r2 = run({ settings: { statusLine: { type: 'command' } } });
+  ck('statusLine missing command -> severity error', r2.findings.some(f => f.title === 'statusLine missing command' && f.severity === 'error'));
+}
+
 for (const d of CLEANUP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
 
 console.log(`\n${pass}/${pass + fail} scenarios passed`);
