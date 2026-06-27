@@ -295,6 +295,14 @@ const mcpFix = (obj, file = '.mcp.json') => ({ settings: {}, extra: (cfg) => wri
   try { r = run({ settings: { hooks: { PostToolUse: [{ matcher: 'Edit', hooks: [null, { type: 'command', command: 5 }, { type: 'command', command: 5 }] }] } } }); } catch { threw = true; }
   ck('X5 malformed hook entries -> no crash, no duplicate finding', !threw && !hasFinding(r, 'hooks', 'duplicate hook command'));
 }
+{ // HT1 http-type hook with no url -> error (parallel to a command hook with no command)
+  const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'http' }] }] } } });
+  ck('HT1 http hook missing url -> error', hasFinding(r, 'hooks', 'http hook missing url: PreToolUse'));
+}
+{ // HT2 http hook with a url -> clean (FP guard)
+  const r = run({ settings: { hooks: { PreToolUse: [{ hooks: [{ type: 'http', url: 'https://hooks.example.com/x' }] }] } } });
+  ck('HT2 http hook with url -> no finding', !hasFinding(r, 'hooks', 'http hook missing url'));
+}
 
 /* ---------------- J. extended JSON validity ---------------- */
 { // J1 malformed .mcp.json -> config error

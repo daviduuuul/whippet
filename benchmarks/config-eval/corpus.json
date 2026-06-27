@@ -1,5 +1,5 @@
 {
-  "count": 89,
+  "count": 90,
   "scenarios": [
     {
       "description": "Clean baseline: a realistic web-project settings.json with tricky-but-VALID permission rules — mcp__server__* and mcp__server__get_* wildcards, Bash(npm run *), Read(//abs/path), WebFetch(domain:...) — plus a normal statusLine and one valid PostToolUse hook. Nothing should be flagged; this measures false positives on tricky-valid rules.",
@@ -3937,6 +3937,22 @@
       "mcp": null,
       "issues": [],
       "id": "s88"
+    },
+    {
+      "description": "Drift: an http-type hook is configured with no url, so it can never fire — Claude Code accepts the entry but the hook is inert. Should be flagged as an http hook missing its url (parallel to a command hook with no command).",
+      "settings": {
+        "hooks": {
+          "PreToolUse": [
+            { "hooks": [{ "type": "http" }] }
+          ]
+        }
+      },
+      "settingsLocal": null,
+      "mcp": null,
+      "issues": [
+        { "kind": "http_hook_missing_url", "token": "PreToolUse", "note": "an http hook with no url is inert" }
+      ],
+      "id": "s89"
     }
   ]
 }

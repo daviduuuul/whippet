@@ -30,6 +30,7 @@ const KIND_CATEGORY = {
   unknown_hook_event: 'hooks',
   invalid_hook_matcher: 'hooks',
   hook_missing_command: 'hooks',
+  http_hook_missing_url: 'hooks',
   invalid_hook_timeout: 'hooks',
   unknown_hook_type: 'hooks',
   duplicate_hook_command: 'hooks',

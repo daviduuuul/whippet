@@ -349,6 +349,12 @@ function audit(configDir) {
               'add a command or remove the hook', `${label}:hooks.${event}`);
             continue;
           }
+          if (h && h.type === 'http' && !h.url) {
+            add('error', 'hooks', `http hook missing url: ${event}`,
+              'an http-type hook has no url to call, so it never fires',
+              'add a url or remove the hook', `${label}:hooks.${event}`);
+            continue;
+          }
           const sp = extractScriptPath(h && h.command);
           if (sp && scriptMissing(sp, configDir)) {
             add('error', 'hooks', `hook script missing: ${event}`,
