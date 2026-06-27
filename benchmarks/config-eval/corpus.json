@@ -3826,7 +3826,7 @@
       "id": "s81"
     },
     {
-      "description": "Drift: a PostToolUse hook registers the exact same command twice under the same matcher, so the command runs twice on every matching tool call — the schema allows it but it is redundant merge/paste drift. Should be flagged as a duplicate hook command.",
+      "description": "Redundant config: a PostToolUse hook registers the exact same command twice under the same matcher. Claude Code deduplicates identical command hooks (by command string), so it runs once — but the duplicate entry is redundant merge/paste clutter worth surfacing as info. Should be flagged as a duplicate hook command.",
       "settings": {
         "hooks": {
           "PostToolUse": [
@@ -3843,7 +3843,7 @@
       "settingsLocal": null,
       "mcp": null,
       "issues": [
-        { "kind": "duplicate_hook_command", "token": "format-all", "note": "same command registered twice under the same matcher — runs twice" }
+        { "kind": "duplicate_hook_command", "token": "format-all", "note": "same command registered twice under the same matcher (Claude Code dedupes; redundant config)" }
       ],
       "id": "s82"
     },

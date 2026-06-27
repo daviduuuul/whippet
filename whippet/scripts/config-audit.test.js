@@ -557,14 +557,14 @@ ck('version drift: a release outranks the source prerelease -> no false out-of-d
     { type: 'command', command: 'run-linter' },
     { type: 'command', command: 'run-linter' },
   ] }] } } });
-  ck('DUP1 duplicate hook command, same matcher -> warning', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
+  ck('DUP1 duplicate hook command, same matcher -> info', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
 }
 { // DUP2 same command across two groups that share a matcher -> duplicate warning
   const r = run({ settings: { hooks: { PostToolUse: [
     { matcher: 'Edit', hooks: [{ type: 'command', command: 'run-linter' }] },
     { matcher: 'Edit', hooks: [{ type: 'command', command: 'run-linter' }] },
   ] } } });
-  ck('DUP2 duplicate command across same-matcher groups -> warning', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
+  ck('DUP2 duplicate command across same-matcher groups -> info', hasFinding(r, 'hooks', 'duplicate hook command: PostToolUse'));
 }
 { // DUP3 same command under DIFFERENT matchers -> legitimate, no duplicate (FP guard)
   const r = run({ settings: { hooks: { PostToolUse: [

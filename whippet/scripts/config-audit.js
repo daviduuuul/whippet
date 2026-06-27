@@ -355,15 +355,16 @@ function audit(configDir) {
               `a ${event} hook command points to a file that does not exist: ${sp}`,
               'fix the path or remove the hook', `${label}:hooks.${event}`);
           }
-          // duplicate registration: the same command under the same matcher, registered twice in
-          // an event, just runs twice — the schema allows it, but it is almost always merge/paste
-          // drift. Keyed by (matcher, command) so the same command under *different* matchers (a
-          // legitimate setup) is never flagged.
+          // duplicate registration: the same command under the same matcher, registered more than
+          // once. Claude Code auto-deduplicates identical command hooks (by command string), so this
+          // is harmless redundant config, not a runtime problem — surfaced as info (like dead weight),
+          // never an error, so the autonomous advisory stays silent. Keyed by (matcher, command) so
+          // the same command under *different* matchers (a legitimate setup) is never flagged.
           if (h && typeof h.command === 'string' && h.command.trim()) {
             const dupKey = `${g && g.matcher != null ? g.matcher : ''}\u0000${h.command.trim()}`;
             if (seenHookCmds.has(dupKey)) {
-              add('warning', 'hooks', `duplicate hook command: ${event}`,
-                `the same ${event} command is registered more than once under the same matcher, so it runs multiple times: ${h.command.trim()}`,
+              add('info', 'hooks', `duplicate hook command: ${event}`,
+                `the same ${event} command is registered more than once under the same matcher; Claude Code deduplicates identical command hooks, so this is harmless but redundant config: ${h.command.trim()}`,
                 'remove the redundant hook entry', `${label}:hooks.${event}`);
             } else {
               seenHookCmds.add(dupKey);
